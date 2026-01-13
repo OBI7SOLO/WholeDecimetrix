@@ -3,8 +3,9 @@ import { useSelector } from 'react-redux';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import useSWR from 'swr';
-import { Box, Button, CircularProgress } from '@mui/material';
+import { Box, Button, CircularProgress, Snackbar, Alert } from '@mui/material';
 import CreateAssetModal from './CreateAssetModal';
+import useSocket from '../hooks/useSocket';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
@@ -33,6 +34,8 @@ export default function Map() {
   const { token } = useSelector((state) => state.auth);
   const [openModal, setOpenModal] = useState(false);
   const [markers, setMarkers] = useState([]);
+  const [toast, setToast] = useState({ open: false, message: '', severity: 'info' });
+  const socket = useSocket();
 
   const {
     data: assets,
@@ -41,6 +44,24 @@ export default function Map() {
   } = useSWR(token ? `${API_URL}/assets` : null, fetcher, {
     revalidateOnFocus: false,
   });
+
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('new-asset', (asset) => {
+      setToast({
+        open: true,
+        message: `Nuevo activo creado: ${asset.name}`,
+        severity: 'success',
+      });
+      // Refrescar la lista de activos
+      mutate();
+    });
+
+    return () => {
+      socket.off('new-asset');
+    };
+  }, [socket, mutate]);
 
   useEffect(() => {
     if (map.current) return;
@@ -139,6 +160,20 @@ export default function Map() {
         onClose={handleCloseModal}
         onAssetCreated={handleAssetCreated}
       />
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={4000}
+        onClose={() => setToast({ ...toast, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setToast({ ...toast, open: false })}
+          severity={toast.severity}
+          sx={{ width: '100%' }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
