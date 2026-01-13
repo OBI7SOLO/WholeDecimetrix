@@ -67,6 +67,7 @@ app.get('/assets', authenticateJWT, async (req, res) => {
 app.post('/assets', authenticateJWT, async (req, res) => {
   const asset = new Asset({ ...req.body, createdBy: req.user.id });
   await asset.save();
+  io.emit('new-asset', asset);
   res.status(201).json(asset);
 });
 
@@ -74,7 +75,9 @@ const server = app.listen(process.env.PORT || 5000, () => {
   console.log(`Server running on port ${process.env.PORT || 5000}`);
 });
 
-const io = socketIo(server);
+const io = socketIo(server, {
+  cors: { origin: '*' },
+});
 
 io.on('connection', (socket) => {
   console.log('New client connected');
@@ -82,3 +85,5 @@ io.on('connection', (socket) => {
     console.log('Client disconnected');
   });
 });
+
+module.exports = { app, io };
