@@ -47,53 +47,108 @@ export default function Login() {
   };
 
   return (
-    <Container maxWidth='sm'>
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          minHeight: '100vh',
-          justifyContent: 'center',
-        }}
-      >
-        <Typography variant='h4' sx={{ mb: 3 }}>
-          Login - Decimetrix
-        </Typography>
-        {error && (
-          <Alert severity='error' sx={{ mb: 2, width: '100%' }}>
-            {error}
-          </Alert>
-        )}
-        <Box component='form' onSubmit={handleLogin} sx={{ width: '100%' }}>
-          <TextField
-            fullWidth
-            label='Email'
-            type='email'
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            margin='normal'
-            required
-          />
-          <TextField
-            fullWidth
-            label='Contraseña'
-            type='password'
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            margin='normal'
-            required
-          />
-          <Button fullWidth variant='contained' type='submit' sx={{ mt: 3 }}>
-            Login
-          </Button>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      }}
+    >
+      <Container maxWidth='xs'>
+        <Box
+          sx={{
+            backgroundColor: 'white',
+            borderRadius: 3,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+            p: 4,
+          }}
+        >
+          <Typography
+            variant='h4'
+            sx={{
+              mb: 1,
+              textAlign: 'center',
+              fontWeight: 700,
+              color: '#667eea',
+            }}
+          >
+            Decimetrix
+          </Typography>
+          <Typography
+            variant='body2'
+            sx={{ mb: 3, textAlign: 'center', color: 'text.secondary' }}
+          >
+            Sistema de Gestión de Activos
+          </Typography>
+          {error && (
+            <Alert severity='error' sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          <Box component='form' onSubmit={handleLogin}>
+            <TextField
+              fullWidth
+              label='Email'
+              type='email'
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              margin='normal'
+              required
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              label='Contraseña'
+              type='password'
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              margin='normal'
+              required
+              sx={{ mb: 3 }}
+            />
+            <Button
+              fullWidth
+              variant='contained'
+              type='submit'
+              size='large'
+              sx={{
+                py: 1.5,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                '&:hover': {
+                  background:
+                    'linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%)',
+                },
+              }}
+            >
+              Iniciar Sesión
+            </Button>
+          </Box>
+          <Box
+            sx={{
+              mt: 3,
+              p: 2,
+              backgroundColor: '#f5f5f5',
+              borderRadius: 2,
+            }}
+          >
+            <Typography
+              variant='caption'
+              sx={{ display: 'block', mb: 1, fontWeight: 600 }}
+            >
+              Credenciales de prueba:
+            </Typography>
+            <Typography variant='caption' sx={{ display: 'block', mb: 0.5 }}>
+              👨‍💼 Admin: admin@example.com / admin123
+            </Typography>
+            <Typography variant='caption' sx={{ display: 'block' }}>
+              👷 Operario: operator@example.com / operator123
+            </Typography>
+          </Box>
         </Box>
-        <Typography variant='body2' sx={{ mt: 3, textAlign: 'center' }}>
-          Admin: admin@example.com / admin123
-          <br />
-          Operario: operator@example.com / operator123
-        </Typography>
-      </Box>
-    </Container>
+      </Container>
+    </Box>
   );
 }

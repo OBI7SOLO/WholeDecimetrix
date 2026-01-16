@@ -14,22 +14,19 @@ export default function Dashboard() {
     navigate('/login');
   };
 
+  const HEADER_HEIGHT = 64;
+
   return (
-    <Box sx={{ position: 'relative', width: '100%', height: '100vh' }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#f5f6fb' }}>
       <Box
         sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 10,
+          height: HEADER_HEIGHT,
           backgroundColor: 'white',
           boxShadow: 2,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           px: 3,
-          py: 2,
         }}
       >
         <Typography variant='h5'>Decimetrix - Mapeo de Activos</Typography>
@@ -42,7 +39,15 @@ export default function Dashboard() {
           </Button>
         </Box>
       </Box>
-      <Map />
+
+      <Box
+        sx={{
+          position: 'relative',
+          height: `calc(100vh - ${HEADER_HEIGHT}px)`,
+        }}
+      >
+        <Map />
+      </Box>
     </Box>
   );
 }

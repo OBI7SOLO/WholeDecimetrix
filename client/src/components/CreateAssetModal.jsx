@@ -38,8 +38,22 @@ export default function CreateAssetModal({ open, onClose, onAssetCreated }) {
     setLoading(true);
 
     try {
-      if (!formData.name || !formData.type || !formData.lat || !formData.lng) {
+      const lat = parseFloat(formData.lat);
+      const lng = parseFloat(formData.lng);
+
+      if (
+        !formData.name ||
+        !formData.type ||
+        Number.isNaN(lat) ||
+        Number.isNaN(lng)
+      ) {
         throw new Error('Todos los campos son requeridos');
+      }
+
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        throw new Error(
+          'Lat debe estar entre -90 y 90, y Lng entre -180 y 180'
+        );
       }
 
       const response = await fetch(`${API_URL}/assets`, {
@@ -51,8 +65,8 @@ export default function CreateAssetModal({ open, onClose, onAssetCreated }) {
         body: JSON.stringify({
           name: formData.name,
           type: formData.type,
-          lat: parseFloat(formData.lat),
-          lng: parseFloat(formData.lng),
+          lat,
+          lng,
         }),
       });
 
