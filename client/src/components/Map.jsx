@@ -10,6 +10,8 @@ import useSocket from '../hooks/useSocket';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const MAPBOX_TOKEN = (import.meta.env.VITE_MAPBOX_TOKEN || '').trim();
 const MAP_STYLE = 'mapbox://styles/mapbox/streets-v12';
+const DEFAULT_CENTER = [-73.68326960304543, 3.8930383166793945]; // Punto solicitado
+const DEFAULT_ZOOM = 12;
 const OSM_FALLBACK_STYLE = {
   version: 8,
   sources: {
@@ -32,9 +34,6 @@ const OSM_FALLBACK_STYLE = {
 };
 
 // Fallback para evitar token undefined
-if (!MAPBOX_TOKEN) {
-  console.warn('Mapbox token no definido, usando fallback público');
-}
 mapboxgl.accessToken =
   MAPBOX_TOKEN ||
   // Token público de ejemplo de Mapbox (sin restricciones de dominio)
@@ -121,47 +120,44 @@ export default function Map() {
     }
 
     try {
-      console.log('Init map with container', mapContainer.current);
-      // Arrancamos con OSM para asegurar fondo; luego intentamos Mapbox
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: OSM_FALLBACK_STYLE,
-        center: [-74.006, 40.7128],
-        zoom: 12,
+        style: MAP_STYLE,
+        center: DEFAULT_CENTER,
+        zoom: DEFAULT_ZOOM,
       });
 
       let fallbackTimer;
+      let fallbackApplied = false;
+
+      const applyFallback = () => {
+        if (map.current && !fallbackApplied) {
+          fallbackApplied = true;
+          map.current.setStyle(OSM_FALLBACK_STYLE);
+        }
+      };
+
+      fallbackTimer = setTimeout(() => {
+        if (map.current && !map.current.isStyleLoaded()) {
+          applyFallback();
+        }
+      }, 4000);
 
       map.current.on('load', () => {
-        console.log('Map load event (OSM baseline)');
         map.current?.resize();
-
-        // Intentar cargar estilo de Mapbox; si falla, se queda en OSM
-        map.current?.setStyle(MAP_STYLE);
-
-        fallbackTimer = setTimeout(() => {
-          if (map.current && !map.current.isStyleLoaded()) {
-            console.warn('Mapbox style no cargó a tiempo, usando OSM fallback');
-            map.current.setStyle(OSM_FALLBACK_STYLE);
-          }
-        }, 4000);
-      });
-
-      map.current.on('styledata', () => {
-        // Se dispara en cada cambio de estilo; útil para depurar
-      });
-
-      map.current.on('error', (e) => {
-        console.error('Mapbox error', e.error || e);
-        setMapError('No se pudo cargar el mapa (token o red). Revisa consola.');
       });
 
       map.current.on('style.load', () => {
-        console.log('Style loaded');
         if (fallbackTimer) clearTimeout(fallbackTimer);
       });
+
+      map.current.on('error', () => {
+        setMapError(
+          'No se pudo cargar el mapa (token o red). Aplicando mapa alterno.'
+        );
+        applyFallback();
+      });
     } catch (err) {
-      console.error('Error inicializando Mapbox', err);
       setMapError('No se pudo inicializar Mapbox.');
     }
 
@@ -181,10 +177,6 @@ export default function Map() {
     const validAssets = assets.filter((a) =>
       isValidLngLat(Number(a.lng), Number(a.lat))
     );
-
-    if (validAssets.length !== assets.length) {
-      console.warn('Activos inválidos filtrados (lat/lng fuera de rango)');
-    }
 
     // Crear nuevos marcadores
     const newMarkers = validAssets.map((asset) => {
@@ -210,6 +202,19 @@ export default function Map() {
     });
 
     setMarkers(newMarkers);
+
+    // Ajustar vista: si hay activos válidos, ajustar a sus bounds; si no, volver al default
+    if (map.current) {
+      if (validAssets.length > 0) {
+        const bounds = new mapboxgl.LngLatBounds();
+        validAssets.forEach((asset) => {
+          bounds.extend([Number(asset.lng), Number(asset.lat)]);
+        });
+        map.current.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+      } else {
+        map.current.flyTo({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM });
+      }
+    }
   }, [assets]);
 
   const handleAddAsset = () => {

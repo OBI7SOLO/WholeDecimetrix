@@ -52,7 +52,7 @@ export default function CreateAssetModal({ open, onClose, onAssetCreated }) {
 
       if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
         throw new Error(
-          'Lat debe estar entre -90 y 90, y Lng entre -180 y 180'
+          'Lat debe estar entre -90 y 90, y Lng entre -180 y 180',
         );
       }
 
@@ -87,10 +87,18 @@ export default function CreateAssetModal({ open, onClose, onAssetCreated }) {
     setFormData({ name: '', type: '', lat: '', lng: '' });
     setError('');
     onClose();
+    // Evitar warning de focus retenido en contenedores aria-hidden
+    requestAnimationFrame(() => document.activeElement?.blur());
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth='sm' fullWidth>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth='sm'
+      fullWidth
+      disableRestoreFocus
+    >
       <DialogTitle>Crear Nuevo Activo</DialogTitle>
       <DialogContent sx={{ pt: 2 }}>
         {error && (
@@ -105,6 +113,7 @@ export default function CreateAssetModal({ open, onClose, onAssetCreated }) {
           value={formData.name}
           onChange={handleChange}
           margin='normal'
+          autoFocus
         />
         <FormControl fullWidth margin='normal'>
           <InputLabel>Tipo</InputLabel>
