@@ -51,7 +51,7 @@ app.post('/login', async (req, res) => {
   if (user && (await bcrypt.compare(password, user.password))) {
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET
+      process.env.JWT_SECRET,
     );
     return res.json({ token });
   }
