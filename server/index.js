@@ -38,6 +38,12 @@ const authenticateJWT = (req, res, next) => {
   }
 };
 
+// Admin guard
+const requireAdmin = (req, res, next) => {
+  if (req.user?.role !== 'admin') return res.sendStatus(403);
+  return next();
+};
+
 // Login endpoint
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -66,6 +72,12 @@ app.post('/assets', authenticateJWT, async (req, res) => {
   await asset.save();
   io.emit('new-asset', asset);
   res.status(201).json(asset);
+});
+
+// Users (admin only)
+app.get('/users', authenticateJWT, requireAdmin, async (req, res) => {
+  const users = await User.find().select('-password');
+  res.json(users);
 });
 
 const server = app.listen(process.env.PORT || 5000, () => {
