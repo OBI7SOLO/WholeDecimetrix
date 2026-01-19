@@ -48,7 +48,13 @@ export default function Dashboard() {
       </Box>
 
       {userRole === 'admin' && (
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', backgroundColor: 'white' }}>
+        <Box
+          sx={{
+            borderBottom: 1,
+            borderColor: 'divider',
+            backgroundColor: 'white',
+          }}
+        >
           <Tabs value={tabValue} onChange={handleTabChange}>
             <Tab label='Mapa de Activos' />
             <Tab label='Usuarios' />
