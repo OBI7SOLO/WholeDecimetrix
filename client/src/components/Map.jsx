@@ -55,11 +55,11 @@ const fetcher = async (url) => {
 
 const getMarkerColor = (type) => {
   const colors = {
-    Pozo: '#FF0000',
-    Motor: '#00FF00',
-    Transformador: '#0000FF',
+    Pozo: '#E91E63', // Rosa/Magenta brillante
+    Motor: '#4CAF50', // Verde profesional
+    Transformador: '#2196F3', // Azul cielo
   };
-  return colors[type] || '#808080';
+  return colors[type] || '#9E9E9E'; // Gris para tipos desconocidos
 };
 
 const isValidLngLat = (lng, lat) =>
@@ -153,7 +153,7 @@ export default function Map() {
 
       map.current.on('error', () => {
         setMapError(
-          'No se pudo cargar el mapa (token o red). Aplicando mapa alterno.'
+          'No se pudo cargar el mapa (token o red). Aplicando mapa alterno.',
         );
         applyFallback();
       });
@@ -175,7 +175,7 @@ export default function Map() {
 
     // Filtrar activos válidos
     const validAssets = assets.filter((a) =>
-      isValidLngLat(Number(a.lng), Number(a.lat))
+      isValidLngLat(Number(a.lng), Number(a.lat)),
     );
 
     // Crear nuevos marcadores
@@ -193,8 +193,8 @@ export default function Map() {
         .setLngLat([Number(asset.lng), Number(asset.lat)])
         .setPopup(
           new mapboxgl.Popup().setHTML(
-            `<strong>${asset.name}</strong><br>Tipo: ${asset.type}`
-          )
+            `<strong>${asset.name}</strong><br>Tipo: ${asset.type}`,
+          ),
         )
         .addTo(map.current);
 
