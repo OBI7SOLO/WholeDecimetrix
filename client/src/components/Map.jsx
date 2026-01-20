@@ -78,6 +78,9 @@ export default function Map() {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [markers, setMarkers] = useState([]);
   const selectedMarker = useRef(null);
+  const [selectMode, setSelectMode] = useState(true);
+  const selectModeRef = useRef(selectMode);
+  const clickListenerRef = useRef(null);
   const [mapError, setMapError] = useState('');
   const [toast, setToast] = useState({
     open: false,
@@ -111,6 +114,10 @@ export default function Map() {
       socket.off('new-asset');
     };
   }, [socket, mutate]);
+
+  useEffect(() => {
+    selectModeRef.current = selectMode;
+  }, [selectMode]);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -150,7 +157,11 @@ export default function Map() {
       });
 
       // Registrar click para crear ping y abrir modal
-      map.current.on('click', handleMapClick);
+      // Registrar click para crear ping y abrir modal si el modo selección está activo
+      clickListenerRef.current = (e) => {
+        if (selectModeRef.current) handleMapClick(e);
+      };
+      map.current.on('click', clickListenerRef.current);
 
       map.current.on('style.load', () => {
         if (fallbackTimer) clearTimeout(fallbackTimer);
@@ -168,7 +179,8 @@ export default function Map() {
 
     return () => {
       if (map.current) {
-        map.current.off('click', handleMapClick);
+        if (clickListenerRef.current)
+          map.current.off('click', clickListenerRef.current);
         map.current.remove();
       }
       map.current = null;
@@ -337,6 +349,26 @@ export default function Map() {
         onClick={handleAddAsset}
       >
         +
+      </Button>
+      <Button
+        variant={selectMode ? 'contained' : 'outlined'}
+        color={selectMode ? 'success' : 'secondary'}
+        sx={{
+          position: 'absolute',
+          bottom: 100,
+          right: 20,
+          borderRadius: '8px',
+          minWidth: 140,
+        }}
+        onClick={() => {
+          setSelectMode((s) => {
+            const next = !s;
+            if (!next) removeSelectedPing();
+            return next;
+          });
+        }}
+      >
+        {selectMode ? 'Seleccionar: ON' : 'Seleccionar: OFF'}
       </Button>
       <CreateAssetModal
         open={openModal}
