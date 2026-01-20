@@ -75,7 +75,9 @@ export default function Map() {
   const map = useRef(null);
   const { token } = useSelector((state) => state.auth);
   const [openModal, setOpenModal] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null);
   const [markers, setMarkers] = useState([]);
+  const selectedMarker = useRef(null);
   const [mapError, setMapError] = useState('');
   const [toast, setToast] = useState({
     open: false,
@@ -147,6 +149,9 @@ export default function Map() {
         map.current?.resize();
       });
 
+      // Registrar click para crear ping y abrir modal
+      map.current.on('click', handleMapClick);
+
       map.current.on('style.load', () => {
         if (fallbackTimer) clearTimeout(fallbackTimer);
       });
@@ -162,7 +167,10 @@ export default function Map() {
     }
 
     return () => {
-      map.current?.remove();
+      if (map.current) {
+        map.current.off('click', handleMapClick);
+        map.current.remove();
+      }
       map.current = null;
     };
   }, []);
@@ -217,17 +225,71 @@ export default function Map() {
     }
   }, [assets]);
 
+  const removeSelectedPing = () => {
+    try {
+      if (selectedMarker.current) {
+        selectedMarker.current.remove();
+        selectedMarker.current = null;
+      }
+    } catch (err) {
+      // ignore
+    }
+    setSelectedLocation(null);
+  };
+
+  const ensurePingStyles = () => {
+    if (document.getElementById('map-ping-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'map-ping-styles';
+    style.innerHTML = `
+      .map-ping { position: relative; width: 18px; height: 18px; }
+      .map-ping .inner { width: 12px; height: 12px; background: #ff5252; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); }
+      .map-ping .outer { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 18px; height: 18px; border-radius: 50%; background: rgba(255,82,82,0.25); animation: ping 1.4s infinite ease-out; }
+      @keyframes ping { 0% { transform: translate(-50%,-50%) scale(0.6); opacity: 0.7 } 70% { transform: translate(-50%,-50%) scale(1.6); opacity: 0 } 100% { opacity: 0 } }
+    `;
+    document.head.appendChild(style);
+  };
+
+  const createPingMarker = (lng, lat) => {
+    removeSelectedPing();
+    ensurePingStyles();
+    const el = document.createElement('div');
+    el.className = 'map-ping';
+    const outer = document.createElement('div');
+    outer.className = 'outer';
+    const inner = document.createElement('div');
+    inner.className = 'inner';
+    el.appendChild(outer);
+    el.appendChild(inner);
+
+    selectedMarker.current = new mapboxgl.Marker(el)
+      .setLngLat([Number(lng), Number(lat)])
+      .addTo(map.current);
+  };
+
+  const handleMapClick = (e) => {
+    if (!e || !e.lngLat) return;
+    const lng = Number(e.lngLat.lng);
+    const lat = Number(e.lngLat.lat);
+    if (!isValidLngLat(lng, lat)) return;
+    createPingMarker(lng, lat);
+    setSelectedLocation({ lng, lat });
+    setOpenModal(true);
+  };
+
   const handleAddAsset = () => {
     setOpenModal(true);
   };
 
   const handleCloseModal = () => {
     setOpenModal(false);
+    removeSelectedPing();
   };
 
   const handleAssetCreated = () => {
     mutate(); // Refrescar los activos
     setOpenModal(false);
+    removeSelectedPing();
   };
 
   return (
@@ -280,6 +342,7 @@ export default function Map() {
         open={openModal}
         onClose={handleCloseModal}
         onAssetCreated={handleAssetCreated}
+        initialCoords={selectedLocation}
       />
       <Snackbar
         open={toast.open}

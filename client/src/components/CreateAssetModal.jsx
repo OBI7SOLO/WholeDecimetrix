@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import {
   Dialog,
@@ -16,7 +16,12 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-export default function CreateAssetModal({ open, onClose, onAssetCreated }) {
+export default function CreateAssetModal({
+  open,
+  onClose,
+  onAssetCreated,
+  initialCoords,
+}) {
   const { token } = useSelector((state) => state.auth);
   const [formData, setFormData] = useState({
     name: '',
@@ -26,6 +31,16 @@ export default function CreateAssetModal({ open, onClose, onAssetCreated }) {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open && initialCoords) {
+      setFormData((prev) => ({
+        ...prev,
+        lat: String(Number(initialCoords.lat).toFixed(6)),
+        lng: String(Number(initialCoords.lng).toFixed(6)),
+      }));
+    }
+  }, [open, initialCoords]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
