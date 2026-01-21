@@ -60,24 +60,76 @@ app.post('/login', async (req, res) => {
 
 // Assets endpoints
 app.get('/assets', authenticateJWT, async (req, res) => {
-  const assets =
-    req.user.role === 'admin'
-      ? await Asset.find()
-      : await Asset.find({ createdBy: req.user.id });
+  const query = req.user.role === 'admin' ? {} : { createdBy: req.user.id };
+  const assets = await Asset.find(query)
+    .populate('createdBy', 'email role')
+    .lean();
   res.json(assets);
 });
 
 app.post('/assets', authenticateJWT, async (req, res) => {
   const asset = new Asset({ ...req.body, createdBy: req.user.id });
   await asset.save();
-  io.emit('new-asset', asset);
-  res.status(201).json(asset);
+  const populated = await asset.populate('createdBy', 'email role');
+  io.emit('new-asset', populated);
+  res.status(201).json(populated);
+});
+
+app.put('/assets/:id', authenticateJWT, async (req, res) => {
+  const asset = await Asset.findById(req.params.id);
+  if (!asset) return res.sendStatus(404);
+  const isOwner = String(asset.createdBy) === String(req.user.id);
+  if (!isOwner && req.user.role !== 'admin') return res.sendStatus(403);
+
+  const updatableFields = ['name', 'type', 'lat', 'lng'];
+  updatableFields.forEach((field) => {
+    if (req.body[field] !== undefined) asset[field] = req.body[field];
+  });
+
+  await asset.save();
+  const populated = await asset.populate('createdBy', 'email role');
+  io.emit('asset-updated', populated);
+  res.json(populated);
+});
+
+app.delete('/assets/:id', authenticateJWT, async (req, res) => {
+  const asset = await Asset.findById(req.params.id);
+  if (!asset) return res.sendStatus(404);
+  const isOwner = String(asset.createdBy) === String(req.user.id);
+  if (!isOwner && req.user.role !== 'admin') return res.sendStatus(403);
+
+  await asset.deleteOne();
+  io.emit('asset-deleted', { id: req.params.id });
+  res.sendStatus(204);
 });
 
 // Users (admin only)
 app.get('/users', authenticateJWT, requireAdmin, async (req, res) => {
   const users = await User.find().select('-password');
   res.json(users);
+});
+
+app.put('/users/:id', authenticateJWT, requireAdmin, async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user) return res.sendStatus(404);
+
+  if (req.body.email) user.email = req.body.email;
+  if (req.body.role) user.role = req.body.role;
+  if (req.body.password) {
+    user.password = await bcrypt.hash(req.body.password, 10);
+  }
+
+  await user.save();
+  const result = user.toObject();
+  delete result.password;
+  res.json(result);
+});
+
+app.delete('/users/:id', authenticateJWT, requireAdmin, async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user) return res.sendStatus(404);
+  await user.deleteOne();
+  res.sendStatus(204);
 });
 
 const server = app.listen(process.env.PORT || 5000, () => {
