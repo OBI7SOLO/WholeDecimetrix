@@ -3,13 +3,32 @@ import { useSelector } from 'react-redux';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import useSWR from 'swr';
-import { Box, Button, CircularProgress, Snackbar, Alert } from '@mui/material';
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Snackbar,
+  Alert,
+  Paper,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from '@mui/material';
+import MapIcon from '@mui/icons-material/Map';
+import SatelliteAltIcon from '@mui/icons-material/SatelliteAlt';
+import TerrainIcon from '@mui/icons-material/Terrain';
 import CreateAssetModal from './CreateAssetModal';
 import useSocket from '../hooks/useSocket';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const MAPBOX_TOKEN = (import.meta.env.VITE_MAPBOX_TOKEN || '').trim();
-const MAP_STYLE = 'mapbox://styles/mapbox/streets-v12';
+
+const MAP_STYLES = {
+  streets: 'mapbox://styles/mapbox/streets-v12',
+  satellite: 'mapbox://styles/mapbox/satellite-streets-v12',
+  outdoors: 'mapbox://styles/mapbox/outdoors-v12',
+};
+
 const DEFAULT_CENTER = [-73.68326960304543, 3.8930383166793945]; // Punto solicitado
 const DEFAULT_ZOOM = 12;
 const OSM_FALLBACK_STYLE = {
@@ -81,6 +100,7 @@ export default function Map() {
   const [selectMode, setSelectMode] = useState(true);
   const selectModeRef = useRef(selectMode);
   const clickListenerRef = useRef(null);
+  const [currentStyle, setCurrentStyle] = useState('streets');
   const [mapError, setMapError] = useState('');
   const [toast, setToast] = useState({
     open: false,
@@ -131,7 +151,7 @@ export default function Map() {
     try {
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: MAP_STYLE,
+        style: MAP_STYLES[currentStyle],
         center: DEFAULT_CENTER,
         zoom: DEFAULT_ZOOM,
       });
@@ -249,6 +269,13 @@ export default function Map() {
     setSelectedLocation(null);
   };
 
+  const handleStyleChange = (event, newStyle) => {
+    if (newStyle !== null && newStyle !== currentStyle && map.current) {
+      setCurrentStyle(newStyle);
+      map.current.setStyle(MAP_STYLES[newStyle]);
+    }
+  };
+
   const ensurePingStyles = () => {
     if (document.getElementById('map-ping-styles')) return;
     const style = document.createElement('style');
@@ -319,6 +346,56 @@ export default function Map() {
         }}
         id='map-container'
       />
+
+      <Paper
+        elevation={3}
+        sx={{
+          position: 'absolute',
+          top: 20,
+          left: 20,
+          zIndex: 1,
+          borderRadius: 2,
+          overflow: 'hidden',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        }}
+      >
+        <ToggleButtonGroup
+          value={currentStyle}
+          exclusive
+          onChange={handleStyleChange}
+          aria-label='estilo de mapa'
+          size='small'
+          sx={{
+            '& .MuiToggleButton-root': {
+              border: 'none',
+              padding: '8px 12px',
+              textTransform: 'none',
+              fontWeight: 600,
+              color: '#475569',
+              '&.Mui-selected': {
+                backgroundColor: '#0ea5e9',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: '#0284c7',
+                },
+              },
+            },
+          }}
+        >
+          <ToggleButton value='streets' aria-label='Calles'>
+            <MapIcon sx={{ mr: 1, fontSize: 20 }} />
+            Mapa
+          </ToggleButton>
+          <ToggleButton value='satellite' aria-label='Satélite'>
+            <SatelliteAltIcon sx={{ mr: 1, fontSize: 20 }} />
+            Satélite
+          </ToggleButton>
+          <ToggleButton value='outdoors' aria-label='Terreno'>
+            <TerrainIcon sx={{ mr: 1, fontSize: 20 }} />
+            Terreno
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Paper>
       {isLoading && (
         <Box
           sx={{
