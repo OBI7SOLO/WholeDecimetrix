@@ -18,6 +18,7 @@ Frontend de la aplicación Decimetrix, construido con React y Vite.
 ## Instalación
 
 1. Navega al directorio del cliente:
+
    ```bash
    cd client
    ```
@@ -26,7 +27,7 @@ Frontend de la aplicación Decimetrix, construido con React y Vite.
    ```bash
    npm install
    ```
-   *Nota: Si encuentras problemas con caché, puedes limpiar e instalar de nuevo.*
+   _Nota: Si encuentras problemas con caché, puedes limpiar e instalar de nuevo._
 
 ## Configuración
 

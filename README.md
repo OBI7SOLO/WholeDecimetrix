@@ -34,7 +34,8 @@ npm install
 node seed.js  # (Opcional) Carga datos de prueba: usuarios admin/user
 npm run dev
 ```
-*El servidor correrá en el puerto 5000.*
+
+_El servidor correrá en el puerto 5000._
 
 ### 3. Configurar el Frontend (Cliente)
 
@@ -45,7 +46,8 @@ cd client
 npm install
 npm run dev
 ```
-*El cliente correrá en http://localhost:5173.*
+
+_El cliente correrá en http://localhost:5173._
 
 ## Credenciales de Prueba (si se ejecutó seed.js)
 
@@ -55,5 +57,6 @@ npm run dev
 ## Scripts de Ayuda (Windows)
 
 En la raíz del proyecto se incluyen scripts batch para facilitar el inicio:
+
 - `start-server.bat`: Instala e inicia el servidor.
 - `start-client.bat`: Instala e inicia el cliente.

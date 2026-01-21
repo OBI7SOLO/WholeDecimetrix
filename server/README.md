@@ -13,6 +13,7 @@ Servidor backend para la aplicación de mapeo de activos Decimetrix.
 ## Instalación
 
 1. Navega al directorio del servidor:
+
    ```bash
    cd server
    ```
@@ -25,9 +26,11 @@ Servidor backend para la aplicación de mapeo de activos Decimetrix.
 ## Uso
 
 1. Iniciar el servidor en modo desarrollo:
+
    ```bash
    npm run dev
    ```
+
    El servidor se ejecutará por defecto en `http://localhost:5000` (o el puerto configurado).
 
 2. **Seed de Datos Iniciales** (Opcional):
