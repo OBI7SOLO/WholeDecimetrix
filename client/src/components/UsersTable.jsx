@@ -148,7 +148,7 @@ export default function UsersTable() {
   if (error) return <Alert severity='error'>{error}</Alert>;
 
   return (
-    <Box sx={{ maxWidth: 900 }}>
+    <Box sx={{ maxWidth: 900, mx: 'auto', width: '100%' }}>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
         <Button variant='contained' onClick={openCreate}>
           Crear Usuario

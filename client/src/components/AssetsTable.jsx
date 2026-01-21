@@ -174,7 +174,7 @@ export default function AssetsTable() {
   };
 
   return (
-    <Box sx={{ width: '100%', maxWidth: 1040 }}>
+    <Box sx={{ width: '100%', maxWidth: 1040, mx: 'auto' }}>
       <Typography variant='h6' sx={{ mb: 2, fontWeight: 700 }}>
         Activos registrados
       </Typography>
