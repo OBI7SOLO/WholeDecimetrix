@@ -5,6 +5,7 @@ import { logout } from '../redux/authSlice';
 import { Box, Button, Typography, Tabs, Tab } from '@mui/material';
 import Map from '../components/Map';
 import UsersTable from '../components/UsersTable';
+import AssetsTable from '../components/AssetsTable';
 
 export default function Dashboard() {
   const { userRole } = useSelector((state) => state.auth);
@@ -79,6 +80,7 @@ export default function Dashboard() {
             }}
           >
             <Tab label='Mapa de Activos' />
+            <Tab label='Activos' />
             <Tab label='Usuarios' />
           </Tabs>
         )}
@@ -102,10 +104,12 @@ export default function Dashboard() {
         sx={{
           position: 'relative',
           height: `calc(100vh - ${HEADER_HEIGHT}px)`,
-          p: userRole === 'admin' && tabValue === 1 ? 3 : 0,
+          p: userRole === 'admin' && tabValue !== 0 ? 3 : 0,
         }}
       >
-        {tabValue === 0 ? <Map /> : <UsersTable />}
+        {tabValue === 0 && <Map />}
+        {userRole === 'admin' && tabValue === 1 && <AssetsTable />}
+        {userRole === 'admin' && tabValue === 2 && <UsersTable />}
       </Box>
     </Box>
   );
