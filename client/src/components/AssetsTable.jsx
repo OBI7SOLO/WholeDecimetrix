@@ -131,6 +131,29 @@ export default function AssetsTable() {
     return `…${String(createdBy).slice(-6)}`;
   };
 
+  const getTypeStyle = (type) => {
+    const styles = {
+      Pozo: {
+        backgroundColor: '#fce4ec',
+        color: '#c2185b',
+      },
+      Motor: {
+        backgroundColor: '#e8f5e9',
+        color: '#2e7d32',
+      },
+      Transformador: {
+        backgroundColor: '#e3f2fd',
+        color: '#1565c0',
+      },
+    };
+    return (
+      styles[type] || {
+        backgroundColor: '#f5f5f5',
+        color: '#616161',
+      }
+    );
+  };
+
   return (
     <Box sx={{ width: '100%', maxWidth: 1040 }}>
       <Typography variant='h6' sx={{ mb: 2, fontWeight: 700 }}>
@@ -161,7 +184,18 @@ export default function AssetsTable() {
             {assets.map((asset) => (
               <TableRow key={asset._id} hover>
                 <TableCell>{asset.name}</TableCell>
-                <TableCell>{asset.type}</TableCell>
+                <TableCell>
+                  <span
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontWeight: 'bold',
+                      ...getTypeStyle(asset.type),
+                    }}
+                  >
+                    {asset.type}
+                  </span>
+                </TableCell>
                 <TableCell>{formatCoord(asset.lat)}</TableCell>
                 <TableCell>{formatCoord(asset.lng)}</TableCell>
                 <TableCell>{formatCreator(asset.createdBy)}</TableCell>
