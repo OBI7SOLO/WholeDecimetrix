@@ -72,9 +72,7 @@ app.post('/login', async (req, res) => {
 // Assets endpoints
 app.get('/assets', authenticateJWT, async (req, res) => {
   // Permitir que todos vean todos los activos
-  const assets = await Asset.find()
-    .populate('createdBy', 'email role')
-    .lean();
+  const assets = await Asset.find().populate('createdBy', 'email role').lean();
   res.json(assets);
 });
 
