@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../redux/authSlice';
-import { Box, Button, Typography, Tabs, Tab } from '@mui/material';
+import { Box, Button, Typography, Tabs, Tab, Avatar } from '@mui/material';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import PersonIcon from '@mui/icons-material/Person';
 import Map from '../components/Map';
 import UsersTable from '../components/UsersTable';
 import AssetsTable from '../components/AssetsTable';
@@ -86,6 +88,16 @@ export default function Dashboard() {
         )}
 
         <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Avatar
+            sx={{
+              bgcolor: userRole === 'admin' ? '#0ea5e9' : '#64748b',
+              width: 40,
+              height: 40,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            }}
+          >
+            {userRole === 'admin' ? <AdminPanelSettingsIcon /> : <PersonIcon />}
+          </Avatar>
           <Typography variant='body1' sx={{ color: '#0f172a' }}>
             Rol: <strong>{userRole}</strong>
           </Typography>
