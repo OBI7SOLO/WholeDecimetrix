@@ -152,7 +152,9 @@ export default function AssetsTable() {
               <TableCell sx={{ fontWeight: 'bold' }}>Latitud</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Longitud</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Creado por</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }} align='right'>Acciones</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }} align='right'>
+                Acciones
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -165,7 +167,11 @@ export default function AssetsTable() {
                 <TableCell>{formatCreator(asset.createdBy)}</TableCell>
                 <TableCell align='right'>
                   <Stack direction='row' spacing={1} justifyContent='flex-end'>
-                    <Button size='small' variant='outlined' onClick={() => openEdit(asset)}>
+                    <Button
+                      size='small'
+                      variant='outlined'
+                      onClick={() => openEdit(asset)}
+                    >
                       Editar
                     </Button>
                     <Button
