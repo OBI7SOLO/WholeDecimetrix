@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { logout } from '../redux/authSlice';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import useSWR from 'swr';
@@ -20,7 +21,7 @@ import TerrainIcon from '@mui/icons-material/Terrain';
 import CreateAssetModal from './CreateAssetModal';
 import useSocket from '../hooks/useSocket';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 const MAPBOX_TOKEN = (import.meta.env.VITE_MAPBOX_TOKEN || '').trim();
 
 const MAP_STYLES = {
@@ -68,6 +69,9 @@ const fetcher = async (url) => {
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('Sesión expirada');
+  }
   if (!response.ok) throw new Error('Error fetching assets');
   return response.json();
 };
@@ -92,6 +96,7 @@ const isValidLngLat = (lng, lat) =>
 export default function Map() {
   const mapContainer = useRef(null);
   const map = useRef(null);
+  const dispatch = useDispatch();
   const { token } = useSelector((state) => state.auth);
   const [openModal, setOpenModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -113,9 +118,16 @@ export default function Map() {
     data: assets,
     isLoading,
     mutate,
+    error,
   } = useSWR(token ? `${API_URL}/assets` : null, fetcher, {
     revalidateOnFocus: false,
   });
+
+  useEffect(() => {
+    if (error && error.message === 'Sesión expirada') {
+      dispatch(logout());
+    }
+  }, [error, dispatch]);
 
   useEffect(() => {
     if (!socket) return;
@@ -130,8 +142,28 @@ export default function Map() {
       mutate();
     });
 
+    socket.on('asset-updated', (asset) => {
+      setToast({
+        open: true,
+        message: `Activo actualizado: ${asset.name}`,
+        severity: 'info',
+      });
+      mutate();
+    });
+
+    socket.on('asset-deleted', () => {
+      setToast({
+        open: true,
+        message: 'Activo eliminado',
+        severity: 'warning',
+      });
+      mutate();
+    });
+
     return () => {
       socket.off('new-asset');
+      socket.off('asset-updated');
+      socket.off('asset-deleted');
     };
   }, [socket, mutate]);
 

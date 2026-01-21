@@ -14,7 +14,7 @@ import {
   Alert,
 } from '@mui/material';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 export default function CreateAssetModal({
   open,
@@ -28,6 +28,7 @@ export default function CreateAssetModal({
     type: '',
     lat: '',
     lng: '',
+    comments: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -82,6 +83,7 @@ export default function CreateAssetModal({
           type: formData.type,
           lat,
           lng,
+          comments: formData.comments,
         }),
       });
 
@@ -99,7 +101,7 @@ export default function CreateAssetModal({
   };
 
   const handleClose = () => {
-    setFormData({ name: '', type: '', lat: '', lng: '' });
+    setFormData({ name: '', type: '', lat: '', lng: '', comments: '' });
     setError('');
     onClose();
     // Evitar warning de focus retenido en contenedores aria-hidden
@@ -162,6 +164,16 @@ export default function CreateAssetModal({
           onChange={handleChange}
           margin='normal'
           inputProps={{ step: '0.0001' }}
+        />
+        <TextField
+          fullWidth
+          label='Comentarios'
+          name='comments'
+          multiline
+          rows={3}
+          value={formData.comments}
+          onChange={handleChange}
+          margin='normal'
         />
       </DialogContent>
       <DialogActions>

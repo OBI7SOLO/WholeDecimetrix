@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { logout } from '../redux/authSlice';
 import {
   Table,
   TableBody,
@@ -20,11 +22,13 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Box,
 } from '@mui/material';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 export default function UsersTable() {
+  const dispatch = useDispatch();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -41,6 +45,11 @@ export default function UsersTable() {
           const response = await fetch(`${API_URL}/users`, {
             headers: { Authorization: `Bearer ${token}` },
           });
+
+          if (response.status === 401 || response.status === 403) {
+            dispatch(logout());
+            throw new Error('Sesión expirada');
+          }
 
           if (!response.ok) {
             throw new Error('Error obteniendo usuarios');
@@ -67,6 +76,11 @@ export default function UsersTable() {
     setModalOpen(true);
   };
 
+  const openCreate = () => {
+    setSelected({ email: '', role: 'operator', password: '' });
+    setModalOpen(true);
+  };
+
   const closeModal = () => {
     setModalOpen(false);
     setSelected(null);
@@ -81,8 +95,14 @@ export default function UsersTable() {
     setSaving(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/users/${selected._id}`, {
-        method: 'PUT',
+      const isNew = !selected._id;
+      const method = isNew ? 'POST' : 'PUT';
+      const url = isNew
+        ? `${API_URL}/users`
+        : `${API_URL}/users/${selected._id}`;
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -94,7 +114,11 @@ export default function UsersTable() {
         }),
       });
 
-      if (!response.ok) throw new Error('No se pudo actualizar el usuario');
+      if (!response.ok)
+        throw new Error(
+          isNew ? 'Error creando usuario' : 'No se pudo actualizar el usuario',
+        );
+
       await loadUsers();
       closeModal();
     } catch (err) {
@@ -124,11 +148,15 @@ export default function UsersTable() {
   if (error) return <Alert severity='error'>{error}</Alert>;
 
   return (
-    <>
+    <Box sx={{ maxWidth: 900 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Button variant='contained' onClick={openCreate}>
+          Crear Usuario
+        </Button>
+      </Box>
       <TableContainer
         component={Paper}
         sx={{
-          maxWidth: 900,
           borderRadius: 3,
           boxShadow: '0 16px 40px rgba(15,23,42,0.12)',
           overflow: 'hidden',
@@ -188,7 +216,9 @@ export default function UsersTable() {
       </TableContainer>
 
       <Dialog open={modalOpen} onClose={closeModal} fullWidth maxWidth='sm'>
-        <DialogTitle>Editar usuario</DialogTitle>
+        <DialogTitle>
+          {selected?._id ? 'Editar usuario' : 'Crear usuario'}
+        </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
@@ -209,7 +239,11 @@ export default function UsersTable() {
               </Select>
             </FormControl>
             <TextField
-              label='Contraseña (dejar vacío para no cambiar)'
+              label={
+                selected?._id
+                  ? 'Contraseña (dejar vacío para no cambiar)'
+                  : 'Contraseña'
+              }
               type='password'
               value={selected?.password || ''}
               onChange={(e) => handleChange('password', e.target.value)}
@@ -224,6 +258,6 @@ export default function UsersTable() {
           </Button>
         </DialogActions>
       </Dialog>
-    </>
+    </Box>
   );
 }

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '../redux/authSlice';
 import {
   Table,
   TableBody,
@@ -20,10 +22,22 @@ import {
   Stack,
 } from '@mui/material';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 export default function AssetsTable() {
+  const dispatch = useDispatch();
+  const { token, userRole } = useSelector((state) => state.auth);
   const [assets, setAssets] = useState([]);
+
+  const userId = useMemo(() => {
+    if (!token) return null;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.id;
+    } catch {
+      return null;
+    }
+  }, [token]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -39,6 +53,11 @@ export default function AssetsTable() {
           const response = await fetch(`${API_URL}/assets`, {
             headers: { Authorization: `Bearer ${token}` },
           });
+
+          if (response.status === 401 || response.status === 403) {
+            dispatch(logout());
+            throw new Error('Sesión expirada');
+          }
 
           if (!response.ok) {
             throw new Error('Error obteniendo activos');
@@ -181,45 +200,57 @@ export default function AssetsTable() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {assets.map((asset) => (
-              <TableRow key={asset._id} hover>
-                <TableCell>{asset.name}</TableCell>
-                <TableCell>
-                  <span
-                    style={{
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      fontWeight: 'bold',
-                      ...getTypeStyle(asset.type),
-                    }}
-                  >
-                    {asset.type}
-                  </span>
-                </TableCell>
-                <TableCell>{formatCoord(asset.lat)}</TableCell>
-                <TableCell>{formatCoord(asset.lng)}</TableCell>
-                <TableCell>{formatCreator(asset.createdBy)}</TableCell>
-                <TableCell align='right'>
-                  <Stack direction='row' spacing={1} justifyContent='flex-end'>
-                    <Button
-                      size='small'
-                      variant='outlined'
-                      onClick={() => openEdit(asset)}
+            {assets.map((asset) => {
+              const creatorId = asset.createdBy?._id || asset.createdBy;
+              const isOwner =
+                userRole === 'admin' || String(creatorId) === String(userId);
+
+              return (
+                <TableRow key={asset._id} hover>
+                  <TableCell>{asset.name}</TableCell>
+                  <TableCell>
+                    <span
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontWeight: 'bold',
+                        ...getTypeStyle(asset.type),
+                      }}
                     >
-                      Editar
-                    </Button>
-                    <Button
-                      size='small'
-                      variant='outlined'
-                      color='error'
-                      onClick={() => handleDelete(asset._id)}
+                      {asset.type}
+                    </span>
+                  </TableCell>
+                  <TableCell>{formatCoord(asset.lat)}</TableCell>
+                  <TableCell>{formatCoord(asset.lng)}</TableCell>
+                  <TableCell>{formatCreator(asset.createdBy)}</TableCell>
+                  <TableCell align='right'>
+                    <Stack
+                      direction='row'
+                      spacing={1}
+                      justifyContent='flex-end'
                     >
-                      Eliminar
-                    </Button>
-                  </Stack>
-                </TableCell>
-              </TableRow>
-            ))}
+                      <Button
+                        size='small'
+                        variant='outlined'
+                        onClick={() => openEdit(asset)}
+                        disabled={!isOwner}
+                      >
+                        Editar
+                      </Button>
+                      <Button
+                        size='small'
+                        variant='outlined'
+                        color='error'
+                        onClick={() => handleDelete(asset._id)}
+                        disabled={!isOwner}
+                      >
+                        Eliminar
+                      </Button>
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>

@@ -58,34 +58,32 @@ export default function Dashboard() {
           Decimetrix - Mapeo de Activos
         </Typography>
 
-        {userRole === 'admin' && (
-          <Tabs
-            value={tabValue}
-            onChange={handleTabChange}
-            sx={{
-              ml: 2,
+        <Tabs
+          value={tabValue}
+          onChange={handleTabChange}
+          sx={{
+            ml: 2,
+            minHeight: 52,
+            '& .MuiTab-root': {
+              color: '#334155',
+              fontWeight: 600,
+              textTransform: 'none',
               minHeight: 52,
-              '& .MuiTab-root': {
-                color: '#334155',
-                fontWeight: 600,
-                textTransform: 'none',
-                minHeight: 52,
-              },
-              '& .Mui-selected': { color: '#0f172a' },
-              '& .MuiTabs-indicator': {
-                height: 3,
-                borderRadius: 999,
-                background:
-                  'linear-gradient(90deg, rgba(14,165,233,0.9), rgba(99,102,241,0.9))',
-                boxShadow: '0 6px 18px rgba(99,102,241,0.35)',
-              },
-            }}
-          >
-            <Tab label='Mapa de Activos' />
-            <Tab label='Activos' />
-            <Tab label='Usuarios' />
-          </Tabs>
-        )}
+            },
+            '& .Mui-selected': { color: '#0f172a' },
+            '& .MuiTabs-indicator': {
+              height: 3,
+              borderRadius: 999,
+              background:
+                'linear-gradient(90deg, rgba(14,165,233,0.9), rgba(99,102,241,0.9))',
+              boxShadow: '0 6px 18px rgba(99,102,241,0.35)',
+            },
+          }}
+        >
+          <Tab label='Mapa de Activos' />
+          <Tab label='Activos' />
+          {userRole === 'admin' && <Tab label='Usuarios' />}
+        </Tabs>
 
         <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 2 }}>
           <Avatar
@@ -116,11 +114,11 @@ export default function Dashboard() {
         sx={{
           position: 'relative',
           height: `calc(100vh - ${HEADER_HEIGHT}px)`,
-          p: userRole === 'admin' && tabValue !== 0 ? 3 : 0,
+          p: tabValue !== 0 ? 3 : 0,
         }}
       >
         {tabValue === 0 && <Map />}
-        {userRole === 'admin' && tabValue === 1 && <AssetsTable />}
+        {tabValue === 1 && <AssetsTable />}
         {userRole === 'admin' && tabValue === 2 && <UsersTable />}
       </Box>
     </Box>

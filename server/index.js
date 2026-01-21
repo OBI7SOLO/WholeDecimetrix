@@ -9,7 +9,17 @@ const socketIo = require('socket.io');
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'http://localhost:5174',
+      'http://127.0.0.1:5174',
+    ],
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 // Connect to MongoDB
@@ -28,6 +38,7 @@ const authenticateJWT = (req, res, next) => {
   if (token) {
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
       if (err) {
+        console.log('JWT Verification Error:', err.message);
         return res.sendStatus(403);
       }
       req.user = user;
@@ -60,8 +71,8 @@ app.post('/login', async (req, res) => {
 
 // Assets endpoints
 app.get('/assets', authenticateJWT, async (req, res) => {
-  const query = req.user.role === 'admin' ? {} : { createdBy: req.user.id };
-  const assets = await Asset.find(query)
+  // Permitir que todos vean todos los activos
+  const assets = await Asset.find()
     .populate('createdBy', 'email role')
     .lean();
   res.json(assets);
@@ -104,6 +115,21 @@ app.delete('/assets/:id', authenticateJWT, async (req, res) => {
 });
 
 // Users (admin only)
+app.post('/users', authenticateJWT, requireAdmin, async (req, res) => {
+  const { email, password, role } = req.body;
+  if (!email || !password || !role) return res.sendStatus(400);
+  const hashedPassword = await bcrypt.hash(password, 10);
+  try {
+    const user = new User({ email, password: hashedPassword, role });
+    await user.save();
+    const result = user.toObject();
+    delete result.password;
+    res.status(201).json(result);
+  } catch (err) {
+    res.status(400).send(err.message);
+  }
+});
+
 app.get('/users', authenticateJWT, requireAdmin, async (req, res) => {
   const users = await User.find().select('-password');
   res.json(users);
@@ -132,12 +158,21 @@ app.delete('/users/:id', authenticateJWT, requireAdmin, async (req, res) => {
   res.sendStatus(204);
 });
 
-const server = app.listen(process.env.PORT || 5000, () => {
-  console.log(`Server running on port ${process.env.PORT || 5000}`);
+const server = app.listen(process.env.PORT || 5001, () => {
+  console.log(`Server running on port ${process.env.PORT || 5001}`);
 });
 
 const io = socketIo(server, {
-  cors: { origin: '*' },
+  cors: {
+    origin: [
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'http://localhost:5174',
+      'http://127.0.0.1:5174',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+  },
 });
 
 io.on('connection', (socket) => {
