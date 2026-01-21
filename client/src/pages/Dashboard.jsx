@@ -28,8 +28,14 @@ export default function Dashboard() {
       <Box
         sx={{
           height: HEADER_HEIGHT,
-          backgroundColor: 'white',
-          boxShadow: 2,
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          background: 'rgba(255,255,255,0.6)',
+          backdropFilter: 'blur(18px)',
+          WebkitBackdropFilter: 'blur(18px)',
+          border: '1px solid rgba(255,255,255,0.45)',
+          boxShadow: '0 20px 50px rgba(15,23,42,0.12)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -52,7 +58,14 @@ export default function Dashboard() {
           sx={{
             borderBottom: 1,
             borderColor: 'divider',
-            backgroundColor: 'white',
+            position: 'sticky',
+            top: HEADER_HEIGHT,
+            zIndex: 9,
+            background: 'rgba(255,255,255,0.55)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.35)',
+            boxShadow: '0 12px 30px rgba(15,23,42,0.08)',
           }}
         >
           <Tabs value={tabValue} onChange={handleTabChange}>
