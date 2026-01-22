@@ -27,17 +27,29 @@ export default function Dashboard() {
   const HEADER_HEIGHT = 76;
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f5f6fb' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        overflow: 'hidden',
+        backgroundColor: '#f5f6fb',
+      }}
+    >
       <Box
         sx={{
-          height: HEADER_HEIGHT,
+          flexShrink: 0,
           position: 'sticky',
           top: 0,
           zIndex: 12,
           display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
           alignItems: 'center',
-          gap: 3,
-          px: 3,
+          justifyContent: 'space-between',
+          gap: { xs: 2, md: 3 },
+          px: { xs: 2, md: 3 },
+          py: { xs: 2, md: 0 },
+          minHeight: { md: HEADER_HEIGHT },
           background:
             'linear-gradient(120deg, rgba(255,255,255,0.78), rgba(255,255,255,0.52))',
           backdropFilter: 'blur(24px)',
@@ -53,6 +65,8 @@ export default function Dashboard() {
             color: '#0f172a',
             letterSpacing: '-0.01em',
             textShadow: '0 6px 18px rgba(255,255,255,0.65)',
+            mb: { xs: 1, md: 0 },
+            textAlign: { xs: 'center', md: 'left' },
           }}
         >
           Decimetrix - Mapeo de Activos
@@ -62,13 +76,17 @@ export default function Dashboard() {
           value={tabValue}
           onChange={handleTabChange}
           sx={{
-            ml: 2,
+            ml: { xs: 0, md: 2 },
+            width: { xs: '100%', md: 'auto' },
             minHeight: 52,
             '& .MuiTab-root': {
               color: '#334155',
               fontWeight: 600,
               textTransform: 'none',
               minHeight: 52,
+            },
+            '& .MuiTabs-flexContainer': {
+              justifyContent: { xs: 'center', md: 'flex-start' },
             },
             '& .Mui-selected': { color: '#0f172a' },
             '& .MuiTabs-indicator': {
@@ -85,7 +103,16 @@ export default function Dashboard() {
           {userRole === 'admin' && <Tab label='Usuarios' />}
         </Tabs>
 
-        <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box
+          sx={{
+            ml: { xs: 0, md: 'auto' },
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: { xs: 'center', md: 'flex-end' },
+            gap: 2,
+            width: { xs: '100%', md: 'auto' },
+          }}
+        >
           <Avatar
             sx={{
               bgcolor: userRole === 'admin' ? '#f57f17' : '#1565c0',
@@ -124,14 +151,25 @@ export default function Dashboard() {
 
       <Box
         sx={{
+          flex: 1,
           position: 'relative',
-          height: `calc(100vh - ${HEADER_HEIGHT}px)`,
-          p: tabValue !== 0 ? 3 : 0,
+          overflow: 'hidden', // Map handles its own scroll/drag
+          display: 'flex', // Ensure children fill height if needed
+          flexDirection: 'column',
+          p: tabValue !== 0 ? { xs: 2, md: 3 } : 0,
         }}
       >
-        {tabValue === 0 && <Map />}
-        {tabValue === 1 && <AssetsTable />}
-        {userRole === 'admin' && tabValue === 2 && <UsersTable />}
+        {tabValue === 0 && (
+          <Box sx={{ flex: 1, minHeight: 0 }}>
+            <Map />
+          </Box>
+        )}
+        {(tabValue === 1 || tabValue === 2) && (
+          <Box sx={{ flex: 1, overflow: 'auto' }}>
+            {tabValue === 1 && <AssetsTable />}
+            {userRole === 'admin' && tabValue === 2 && <UsersTable />}
+          </Box>
+        )}
       </Box>
     </Box>
   );

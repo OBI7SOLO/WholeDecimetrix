@@ -77,7 +77,9 @@ app.get('/assets', authenticateJWT, async (req, res) => {
     query = { createdBy: req.user.id };
   }
 
-  const assets = await Asset.find(query).populate('createdBy', 'email role').lean();
+  const assets = await Asset.find(query)
+    .populate('createdBy', 'email role')
+    .lean();
   res.json(assets);
 });
 
@@ -90,20 +92,25 @@ app.post('/assets', authenticateJWT, async (req, res) => {
 });
 
 app.put('/assets/:id', authenticateJWT, async (req, res) => {
-  const asset = await Asset.findById(req.params.id);
-  if (!asset) return res.sendStatus(404);
-  const isOwner = String(asset.createdBy) === String(req.user.id);
-  if (!isOwner && req.user.role !== 'admin') return res.sendStatus(403);
+  try {
+    const asset = await Asset.findById(req.params.id);
+    if (!asset) return res.sendStatus(404);
+    const isOwner = String(asset.createdBy) === String(req.user.id);
+    if (!isOwner && req.user.role !== 'admin') return res.sendStatus(403);
 
-  const updatableFields = ['name', 'type', 'lat', 'lng', 'comments'];
-  updatableFields.forEach((field) => {
-    if (req.body[field] !== undefined) asset[field] = req.body[field];
-  });
+    const updatableFields = ['name', 'type', 'lat', 'lng', 'comments'];
+    updatableFields.forEach((field) => {
+      if (req.body[field] !== undefined) asset[field] = req.body[field];
+    });
 
-  await asset.save();
-  const populated = await asset.populate('createdBy', 'email role');
-  io.emit('asset-updated', populated);
-  res.json(populated);
+    await asset.save();
+    const populated = await asset.populate('createdBy', 'email role');
+    io.emit('asset-updated', populated);
+    res.json(populated);
+  } catch (err) {
+    console.error('Error updating asset:', err);
+    res.status(400).send(err.message);
+  }
 });
 
 app.delete('/assets/:id', authenticateJWT, async (req, res) => {
@@ -127,6 +134,7 @@ app.post('/users', authenticateJWT, requireAdmin, async (req, res) => {
     await user.save();
     const result = user.toObject();
     delete result.password;
+    io.emit('new-user', result);
     res.status(201).json(result);
   } catch (err) {
     res.status(400).send(err.message);
@@ -151,6 +159,7 @@ app.put('/users/:id', authenticateJWT, requireAdmin, async (req, res) => {
   await user.save();
   const result = user.toObject();
   delete result.password;
+  io.emit('user-updated', result);
   res.json(result);
 });
 
@@ -158,6 +167,7 @@ app.delete('/users/:id', authenticateJWT, requireAdmin, async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) return res.sendStatus(404);
   await user.deleteOne();
+  io.emit('user-deleted', { id: req.params.id });
   res.sendStatus(204);
 });
 

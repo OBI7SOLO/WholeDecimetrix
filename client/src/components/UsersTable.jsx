@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { logout } from '../redux/authSlice';
+import useSocket from '../hooks/useSocket';
 import {
   Table,
   TableBody,
@@ -23,6 +24,8 @@ import {
   FormControl,
   InputLabel,
   Box,
+  Typography,
+  Snackbar,
 } from '@mui/material';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
@@ -30,11 +33,63 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 export default function UsersTable() {
   const dispatch = useDispatch();
   const [users, setUsers] = useState([]);
+  const socket = useSocket();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
   const [modalOpen, setModalOpen] = useState(false);
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('new-user', (user) => {
+      setUsers((prev) => {
+        if (prev.find((u) => u._id === user._id)) return prev;
+        return [...prev, user];
+      });
+      setToast({
+        open: true,
+        message: `Usuario creado: ${user.email}`,
+        severity: 'success',
+      });
+    });
+
+    socket.on('user-updated', (updatedUser) => {
+      setUsers((prev) =>
+        prev.map((u) => (u._id === updatedUser._id ? updatedUser : u)),
+      );
+      setToast({
+        open: true,
+        message: `Usuario actualizado: ${updatedUser.email}`,
+        severity: 'info',
+      });
+    });
+
+    socket.on('user-deleted', ({ id }) => {
+      setUsers((prev) => prev.filter((u) => u._id !== id));
+      setToast({
+        open: true,
+        message: 'Usuario eliminado',
+        severity: 'warning',
+      });
+    });
+
+    return () => {
+      socket.off('new-user');
+      socket.off('user-updated');
+      socket.off('user-deleted');
+    };
+  }, [socket]);
+
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState(null);
+
+  // Estados para el diálogo de eliminación
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   const loadUsers = useMemo(
     () =>
@@ -119,7 +174,20 @@ export default function UsersTable() {
           isNew ? 'Error creando usuario' : 'No se pudo actualizar el usuario',
         );
 
-      await loadUsers();
+      const savedUser = await response.json();
+      setUsers((prev) => {
+        if (isNew) return [...prev, savedUser];
+        return prev.map((u) => (u._id === savedUser._id ? savedUser : u));
+      });
+
+      setToast({
+        open: true,
+        message: isNew
+          ? `Usuario creado: ${savedUser.email}`
+          : `Usuario actualizado: ${savedUser.email}`,
+        severity: isNew ? 'success' : 'info',
+      });
+
       closeModal();
     } catch (err) {
       setError(err.message);
@@ -128,20 +196,37 @@ export default function UsersTable() {
     }
   };
 
-  const handleDelete = async (id) => {
-    const confirmed = window.confirm('¿Eliminar este usuario?');
-    if (!confirmed) return;
+  const confirmDelete = (user) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/users/${id}`, {
+      const response = await fetch(`${API_URL}/users/${userToDelete._id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error('No se pudo eliminar el usuario');
-      setUsers((prev) => prev.filter((u) => u._id !== id));
+      // La actualización se maneja por websocket
+      setUsers((prev) => prev.filter((u) => u._id !== userToDelete._id));
+      setToast({
+        open: true,
+        message: 'Usuario eliminado',
+        severity: 'warning',
+      });
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
     } catch (err) {
       setError(err.message);
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setUserToDelete(null);
   };
 
   if (loading) return <CircularProgress />;
@@ -207,7 +292,8 @@ export default function UsersTable() {
                       size='small'
                       variant='outlined'
                       color='error'
-                      onClick={() => handleDelete(user._id)}
+                      onClick={() => confirmDelete(user)}
+                      sx={{ borderRadius: 2 }}
                     >
                       Eliminar
                     </Button>
@@ -219,17 +305,69 @@ export default function UsersTable() {
         </Table>
       </TableContainer>
 
-      <Dialog open={modalOpen} onClose={closeModal} fullWidth maxWidth='sm'>
-        <DialogTitle>
+      {/* Dialogo de eliminación (Popup Centrado) */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={cancelDelete}
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            width: '100%',
+            maxWidth: '400px',
+            p: 1,
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          },
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', fontWeight: 'bold' }}>
+          ¿Estás seguro?
+        </DialogTitle>
+        <DialogContent>
+          <Typography textAlign='center' color='text.secondary'>
+            ¿Quieres eliminar el usuario <strong>{userToDelete?.email}</strong>?
+            <br />
+            Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pb: 2, gap: 1 }}>
+          <Button
+            onClick={cancelDelete}
+            variant='outlined'
+            sx={{ borderRadius: 2, px: 3 }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant='contained'
+            color='error'
+            sx={{ borderRadius: 2, px: 3, boxShadow: 'none' }}
+          >
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={modalOpen}
+        onClose={closeModal}
+        fullWidth
+        maxWidth='sm'
+        PaperProps={{
+          sx: { borderRadius: 4, p: 2 },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 'bold' }}>
           {selected?._id ? 'Editar usuario' : 'Crear usuario'}
         </DialogTitle>
         <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
+          <Stack spacing={3} sx={{ mt: 1 }}>
             <TextField
               label='Email'
               value={selected?.email || ''}
               onChange={(e) => handleChange('email', e.target.value)}
               fullWidth
+              InputProps={{ sx: { borderRadius: 2 } }}
             />
             <FormControl fullWidth>
               <InputLabel>Rol</InputLabel>
@@ -237,6 +375,7 @@ export default function UsersTable() {
                 value={selected?.role || ''}
                 label='Rol'
                 onChange={(e) => handleChange('role', e.target.value)}
+                sx={{ borderRadius: 2 }}
               >
                 <MenuItem value='operator'>Operario</MenuItem>
                 <MenuItem value='admin'>Admin</MenuItem>
@@ -252,16 +391,41 @@ export default function UsersTable() {
               value={selected?.password || ''}
               onChange={(e) => handleChange('password', e.target.value)}
               fullWidth
+              InputProps={{ sx: { borderRadius: 2 } }}
             />
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={closeModal}>Cancelar</Button>
-          <Button onClick={handleSave} variant='contained' disabled={saving}>
-            {saving ? 'Guardando…' : 'Guardar'}
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={closeModal}
+            variant='outlined'
+            sx={{ borderRadius: 2 }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSave}
+            variant='contained'
+            disabled={saving}
+            sx={{ borderRadius: 2, boxShadow: 'none' }}
+          >
+            {saving ? 'Guardando...' : 'Guardar'}
           </Button>
         </DialogActions>
       </Dialog>
     </Box>
   );
+  <Snackbar
+    open={toast.open}
+    autoHideDuration={4000}
+    onClose={() => setToast({ ...toast, open: false })}
+  >
+    <Alert
+      onClose={() => setToast({ ...toast, open: false })}
+      severity={toast.severity}
+      sx={{ width: '100%' }}
+    >
+      {toast.message}
+    </Alert>
+  </Snackbar>;
 }

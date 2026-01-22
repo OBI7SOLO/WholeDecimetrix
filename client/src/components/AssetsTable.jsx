@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../redux/authSlice';
+import useSocket from '../hooks/useSocket';
 import {
   Table,
   TableBody,
@@ -20,6 +21,7 @@ import {
   DialogActions,
   TextField,
   Stack,
+  Snackbar, // Agregado
 } from '@mui/material';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
@@ -28,6 +30,14 @@ export default function AssetsTable() {
   const dispatch = useDispatch();
   const { token, userRole } = useSelector((state) => state.auth);
   const [assets, setAssets] = useState([]);
+  const socket = useSocket(); // Agregado
+
+  // Estado para notificaciones
+  const [toast, setToast] = useState({
+    open: false,
+    message: '',
+    severity: 'success', // 'success' | 'info' | 'warning' | 'error'
+  });
 
   const userId = useMemo(() => {
     if (!token) return null;
@@ -43,6 +53,53 @@ export default function AssetsTable() {
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState(null);
+
+  // Estados para el diálogo de eliminación
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [assetToDelete, setAssetToDelete] = useState(null);
+
+  // Manejo de websockets
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('new-asset', (asset) => {
+      setAssets((prev) => {
+        if (prev.find((a) => a._id === asset._id)) return prev;
+        return [asset, ...prev];
+      });
+      setToast({
+        open: true,
+        message: `Nuevo activo creado: ${asset.name}`,
+        severity: 'success',
+      });
+    });
+
+    socket.on('asset-updated', (updatedAsset) => {
+      setAssets((prev) =>
+        prev.map((a) => (a._id === updatedAsset._id ? updatedAsset : a)),
+      );
+      setToast({
+        open: true,
+        message: `Activo actualizado: ${updatedAsset.name}`,
+        severity: 'info',
+      });
+    });
+
+    socket.on('asset-deleted', ({ id }) => {
+      setAssets((prev) => prev.filter((a) => a._id !== id));
+      setToast({
+        open: true,
+        message: 'Activo eliminado',
+        severity: 'warning',
+      });
+    });
+
+    return () => {
+      socket.off('new-asset');
+      socket.off('asset-updated');
+      socket.off('asset-deleted');
+    };
+  }, [socket]);
 
   const loadAssets = useMemo(
     () =>
@@ -114,7 +171,19 @@ export default function AssetsTable() {
       });
 
       if (!response.ok) throw new Error('No se pudo actualizar el activo');
-      await loadAssets();
+
+      const updatedAsset = await response.json();
+      setAssets((prev) =>
+        prev.map((a) => (a._id === updatedAsset._id ? updatedAsset : a)),
+      );
+
+      // Si el socket demora, mostramos feedback inmediato de todas formas
+      setToast({
+        open: true,
+        message: `Activo actualizado: ${updatedAsset.name}`,
+        severity: 'info',
+      });
+
       closeModal();
     } catch (err) {
       setError(err.message);
@@ -123,20 +192,39 @@ export default function AssetsTable() {
     }
   };
 
-  const handleDelete = async (id) => {
-    const confirmed = window.confirm('¿Eliminar este activo?');
-    if (!confirmed) return;
+  const confirmDelete = (asset) => {
+    setAssetToDelete(asset);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!assetToDelete) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/assets/${id}`, {
+      const response = await fetch(`${API_URL}/assets/${assetToDelete._id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error('No se pudo eliminar el activo');
-      setAssets((prev) => prev.filter((a) => a._id !== id));
+
+      // Actualizamos UI inmediatamente
+      setAssets((prev) => prev.filter((a) => a._id !== assetToDelete._id));
+      setToast({
+        open: true,
+        message: 'Activo eliminado',
+        severity: 'warning',
+      });
+
+      setDeleteDialogOpen(false);
+      setAssetToDelete(null);
     } catch (err) {
       setError(err.message);
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setAssetToDelete(null);
   };
 
   if (loading) return <CircularProgress />;
@@ -255,8 +343,9 @@ export default function AssetsTable() {
                         size='small'
                         variant='outlined'
                         color='error'
-                        onClick={() => handleDelete(asset._id)}
+                        onClick={() => confirmDelete(asset)}
                         disabled={!isOwner}
+                        sx={{ borderRadius: 2 }}
                       >
                         Eliminar
                       </Button>
@@ -269,34 +358,97 @@ export default function AssetsTable() {
         </Table>
       </TableContainer>
 
-      <Dialog open={modalOpen} onClose={closeModal} fullWidth maxWidth='sm'>
-        <DialogTitle>Editar activo</DialogTitle>
+      {/* Dialogo de eliminación (Popup Centrado) */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={cancelDelete}
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            width: '100%',
+            maxWidth: '400px',
+            p: 1,
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          },
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', fontWeight: 'bold' }}>
+          ¿Estás seguro?
+        </DialogTitle>
         <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
+          <Typography textAlign='center' color='text.secondary'>
+            ¿Quieres eliminar el activo <strong>{assetToDelete?.name}</strong>?
+            <br />
+            Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pb: 2, gap: 1 }}>
+          <Button
+            onClick={cancelDelete}
+            variant='outlined'
+            sx={{ borderRadius: 2, px: 3 }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant='contained'
+            color='error'
+            sx={{ borderRadius: 2, px: 3, boxShadow: 'none' }}
+          >
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={modalOpen}
+        onClose={closeModal}
+        fullWidth
+        maxWidth='sm'
+        PaperProps={{
+          sx: { borderRadius: 4, p: 2 },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 'bold' }}>Editar activo</DialogTitle>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 1 }}>
             <TextField
               label='Nombre'
               value={selected?.name || ''}
               onChange={(e) => handleChange('name', e.target.value)}
               fullWidth
+              InputProps={{ sx: { borderRadius: 2 } }}
             />
             <TextField
+              select
               label='Tipo'
               value={selected?.type || ''}
               onChange={(e) => handleChange('type', e.target.value)}
               fullWidth
-            />
-            <TextField
-              label='Latitud'
-              value={selected?.lat ?? ''}
-              onChange={(e) => handleChange('lat', e.target.value)}
-              fullWidth
-            />
-            <TextField
-              label='Longitud'
-              value={selected?.lng ?? ''}
-              onChange={(e) => handleChange('lng', e.target.value)}
-              fullWidth
-            />
+              InputProps={{ sx: { borderRadius: 2 } }}
+              SelectProps={{ native: true }}
+            >
+              <option value='Pozo'>Pozo</option>
+              <option value='Motor'>Motor</option>
+              <option value='Transformador'>Transformador</option>
+            </TextField>
+            <Stack direction='row' spacing={2}>
+              <TextField
+                label='Latitud'
+                value={selected?.lat ?? ''}
+                onChange={(e) => handleChange('lat', e.target.value)}
+                fullWidth
+                InputProps={{ sx: { borderRadius: 2 } }}
+              />
+              <TextField
+                label='Longitud'
+                value={selected?.lng ?? ''}
+                onChange={(e) => handleChange('lng', e.target.value)}
+                fullWidth
+                InputProps={{ sx: { borderRadius: 2 } }}
+              />
+            </Stack>
             <TextField
               label='Comentarios'
               value={selected?.comments || ''}
@@ -305,16 +457,42 @@ export default function AssetsTable() {
               multiline
               rows={3}
               placeholder='Añade comentarios sobre este activo...'
+              InputProps={{ sx: { borderRadius: 2 } }}
             />
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={closeModal}>Cancelar</Button>
-          <Button onClick={handleSave} variant='contained' disabled={saving}>
-            {saving ? 'Guardando…' : 'Guardar'}
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={closeModal}
+            variant='outlined'
+            sx={{ borderRadius: 2 }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSave}
+            variant='contained'
+            disabled={saving}
+            sx={{ borderRadius: 2, boxShadow: 'none' }}
+          >
+            {saving ? 'Guardando...' : 'Guardar Cambios'}
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={4000}
+        onClose={() => setToast({ ...toast, open: false })}
+      >
+        <Alert
+          onClose={() => setToast({ ...toast, open: false })}
+          severity={toast.severity}
+          sx={{ width: '100%' }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

@@ -115,11 +115,20 @@ export default function CreateAssetModal({
       maxWidth='sm'
       fullWidth
       disableRestoreFocus
+      PaperProps={{
+        sx: {
+          borderRadius: 4,
+          p: 2,
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        },
+      }}
     >
-      <DialogTitle>Crear Nuevo Activo</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 'bold', fontSize: '1.5rem', pb: 1 }}>
+        Crear Nuevo Activo
+      </DialogTitle>
       <DialogContent sx={{ pt: 2 }}>
         {error && (
-          <Alert severity='error' sx={{ mb: 2 }}>
+          <Alert severity='error' sx={{ mb: 3, borderRadius: 2 }}>
             {error}
           </Alert>
         )}
@@ -131,6 +140,7 @@ export default function CreateAssetModal({
           onChange={handleChange}
           margin='normal'
           autoFocus
+          InputProps={{ sx: { borderRadius: 2 } }}
         />
         <FormControl fullWidth margin='normal'>
           <InputLabel>Tipo</InputLabel>
@@ -139,32 +149,37 @@ export default function CreateAssetModal({
             value={formData.type}
             onChange={handleChange}
             label='Tipo'
+            sx={{ borderRadius: 2 }}
           >
             <MenuItem value='Pozo'>Pozo</MenuItem>
             <MenuItem value='Motor'>Motor</MenuItem>
             <MenuItem value='Transformador'>Transformador</MenuItem>
           </Select>
         </FormControl>
-        <TextField
-          fullWidth
-          label='Latitud'
-          name='lat'
-          type='number'
-          value={formData.lat}
-          onChange={handleChange}
-          margin='normal'
-          inputProps={{ step: '0.0001' }}
-        />
-        <TextField
-          fullWidth
-          label='Longitud'
-          name='lng'
-          type='number'
-          value={formData.lng}
-          onChange={handleChange}
-          margin='normal'
-          inputProps={{ step: '0.0001' }}
-        />
+        <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
+          <TextField
+            fullWidth
+            label='Latitud'
+            name='lat'
+            type='number'
+            value={formData.lat}
+            onChange={handleChange}
+            margin='none'
+            inputProps={{ step: '0.0001' }}
+            InputProps={{ sx: { borderRadius: 2 } }}
+          />
+          <TextField
+            fullWidth
+            label='Longitud'
+            name='lng'
+            type='number'
+            value={formData.lng}
+            onChange={handleChange}
+            margin='none'
+            inputProps={{ step: '0.0001' }}
+            InputProps={{ sx: { borderRadius: 2 } }}
+          />
+        </div>
         <TextField
           fullWidth
           label='Comentarios'
@@ -174,11 +189,24 @@ export default function CreateAssetModal({
           value={formData.comments}
           onChange={handleChange}
           margin='normal'
+          InputProps={{ sx: { borderRadius: 2 } }}
+          sx={{ mt: 3 }}
         />
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose}>Cancelar</Button>
-        <Button onClick={handleSubmit} variant='contained' disabled={loading}>
+      <DialogActions sx={{ p: 3, pt: 1 }}>
+        <Button
+          onClick={handleClose}
+          variant='outlined'
+          sx={{ borderRadius: 2, px: 3 }}
+        >
+          Cancelar
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          variant='contained'
+          disabled={loading}
+          sx={{ borderRadius: 2, px: 3, boxShadow: 'none' }}
+        >
           {loading ? 'Creando...' : 'Crear Activo'}
         </Button>
       </DialogActions>

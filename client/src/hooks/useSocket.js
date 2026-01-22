@@ -1,31 +1,25 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 export default function useSocket() {
-  const socketRef = useRef(null);
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    socketRef.current = io(API_URL, {
+    const newSocket = io(API_URL, {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       reconnectionAttempts: 5,
     });
 
-    socketRef.current.on('connect', () => {
-      console.log('Socket connected');
-    });
-
-    socketRef.current.on('disconnect', () => {
-      console.log('Socket disconnected');
-    });
+    setSocket(newSocket);
 
     return () => {
-      socketRef.current?.disconnect();
+      newSocket.disconnect();
     };
   }, []);
 
-  return socketRef.current;
+  return socket;
 }

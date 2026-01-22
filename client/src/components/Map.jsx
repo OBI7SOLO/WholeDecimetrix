@@ -18,6 +18,11 @@ import {
 import MapIcon from '@mui/icons-material/Map';
 import SatelliteAltIcon from '@mui/icons-material/SatelliteAlt';
 import TerrainIcon from '@mui/icons-material/Terrain';
+import WaterDropIcon from '@mui/icons-material/WaterDrop';
+import SettingsIcon from '@mui/icons-material/Settings';
+import ElectricBoltIcon from '@mui/icons-material/ElectricBolt';
+import MyLocationIcon from '@mui/icons-material/MyLocation';
+import { renderToStaticMarkup } from 'react-dom/server';
 import CreateAssetModal from './CreateAssetModal';
 import useSocket from '../hooks/useSocket';
 
@@ -78,9 +83,9 @@ const fetcher = async (url) => {
 
 const getMarkerColor = (type) => {
   const colors = {
-    Pozo: '#E91E63', // Rosa/Magenta brillante
-    Motor: '#4CAF50', // Verde profesional
-    Transformador: '#2196F3', // Azul cielo
+    Pozo: '#000000', // Negro
+    Motor: '#D32F2F', // Rojo
+    Transformador: '#FFC107', // Amarillo/Dorado
   };
   return colors[type] || '#9E9E9E'; // Gris para tipos desconocidos
 };
@@ -188,6 +193,9 @@ export default function Map() {
         zoom: DEFAULT_ZOOM,
       });
 
+      // Controles de navegación (zoom y rotación)
+      map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
       let fallbackTimer;
       let fallbackApplied = false;
 
@@ -260,12 +268,38 @@ export default function Map() {
       el.style.cursor = 'pointer';
       el.style.border = '2px solid white';
       el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+      el.style.display = 'flex';
+      el.style.justifyContent = 'center';
+      el.style.alignItems = 'center';
+
+      let IconComponent;
+      switch (asset.type) {
+        case 'Pozo':
+          IconComponent = WaterDropIcon;
+          break;
+        case 'Motor':
+          IconComponent = SettingsIcon;
+          break;
+        case 'Transformador':
+          IconComponent = ElectricBoltIcon;
+          break;
+        default:
+          IconComponent = null;
+      }
+
+      if (IconComponent) {
+        el.innerHTML = renderToStaticMarkup(
+          <IconComponent style={{ fontSize: '18px', color: 'white' }} />,
+        );
+      }
 
       // Crear HTML para el popup con toda la información del activo
       const creatorEmail = asset.createdBy?.email || 'N/A';
-      const createdAt = asset.createdAt ? new Date(asset.createdAt).toLocaleString('es-ES') : 'N/A';
+      const createdAt = asset.createdAt
+        ? new Date(asset.createdAt).toLocaleString('es-ES')
+        : 'N/A';
       const comments = asset.comments || 'Sin comentarios';
-      
+
       const popupHTML = `
         <div style="min-width: 200px; padding: 4px;">
           <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold; color: #333;">${asset.name}</h3>
@@ -282,9 +316,7 @@ export default function Map() {
 
       const marker = new mapboxgl.Marker(el)
         .setLngLat([Number(asset.lng), Number(asset.lat)])
-        .setPopup(
-          new mapboxgl.Popup({ maxWidth: '300px' }).setHTML(popupHTML),
-        )
+        .setPopup(new mapboxgl.Popup({ maxWidth: '300px' }).setHTML(popupHTML))
         .addTo(map.current);
 
       return marker;
@@ -445,6 +477,37 @@ export default function Map() {
           </ToggleButton>
         </ToggleButtonGroup>
       </Paper>
+
+      {/* Botón para recentrar el mapa */}
+      <Paper
+        elevation={3}
+        sx={{
+          position: 'absolute',
+          top: 80,
+          left: 20,
+          zIndex: 1,
+          borderRadius: '50%',
+        }}
+      >
+        <Button
+          onClick={() =>
+            map.current?.flyTo({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM })
+          }
+          sx={{
+            minWidth: '40px',
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            p: 0,
+            color: '#475569',
+          }}
+          aria-label='Centrar mapa'
+          title='Centrar mapa'
+        >
+          <MyLocationIcon />
+        </Button>
+      </Paper>
+
       {isLoading && (
         <Box
           sx={{
