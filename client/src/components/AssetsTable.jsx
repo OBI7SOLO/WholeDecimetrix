@@ -109,6 +109,7 @@ export default function AssetsTable() {
           type: selected.type,
           lat: Number(selected.lat),
           lng: Number(selected.lng),
+          comments: selected.comments || '',
         }),
       });
 
@@ -194,6 +195,7 @@ export default function AssetsTable() {
               <TableCell sx={{ fontWeight: 'bold' }}>Latitud</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Longitud</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Creado por</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Comentarios</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }} align='right'>
                 Acciones
               </TableCell>
@@ -223,6 +225,18 @@ export default function AssetsTable() {
                   <TableCell>{formatCoord(asset.lat)}</TableCell>
                   <TableCell>{formatCoord(asset.lng)}</TableCell>
                   <TableCell>{formatCreator(asset.createdBy)}</TableCell>
+                  <TableCell sx={{ maxWidth: 200 }}>
+                    <Typography
+                      variant='body2'
+                      sx={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {asset.comments || 'Sin comentarios'}
+                    </Typography>
+                  </TableCell>
                   <TableCell align='right'>
                     <Stack
                       direction='row'
@@ -282,6 +296,15 @@ export default function AssetsTable() {
               value={selected?.lng ?? ''}
               onChange={(e) => handleChange('lng', e.target.value)}
               fullWidth
+            />
+            <TextField
+              label='Comentarios'
+              value={selected?.comments || ''}
+              onChange={(e) => handleChange('comments', e.target.value)}
+              fullWidth
+              multiline
+              rows={3}
+              placeholder='Añade comentarios sobre este activo...'
             />
           </Stack>
         </DialogContent>

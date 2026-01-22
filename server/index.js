@@ -71,8 +71,13 @@ app.post('/login', async (req, res) => {
 
 // Assets endpoints
 app.get('/assets', authenticateJWT, async (req, res) => {
-  // Permitir que todos vean todos los activos
-  const assets = await Asset.find().populate('createdBy', 'email role').lean();
+  let query = {};
+  // Si es operario (no admin), solo puede ver sus propios activos
+  if (req.user.role !== 'admin') {
+    query = { createdBy: req.user.id };
+  }
+
+  const assets = await Asset.find(query).populate('createdBy', 'email role').lean();
   res.json(assets);
 });
 
@@ -90,7 +95,7 @@ app.put('/assets/:id', authenticateJWT, async (req, res) => {
   const isOwner = String(asset.createdBy) === String(req.user.id);
   if (!isOwner && req.user.role !== 'admin') return res.sendStatus(403);
 
-  const updatableFields = ['name', 'type', 'lat', 'lng'];
+  const updatableFields = ['name', 'type', 'lat', 'lng', 'comments'];
   updatableFields.forEach((field) => {
     if (req.body[field] !== undefined) asset[field] = req.body[field];
   });

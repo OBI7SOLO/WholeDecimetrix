@@ -261,12 +261,29 @@ export default function Map() {
       el.style.border = '2px solid white';
       el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
 
+      // Crear HTML para el popup con toda la información del activo
+      const creatorEmail = asset.createdBy?.email || 'N/A';
+      const createdAt = asset.createdAt ? new Date(asset.createdAt).toLocaleString('es-ES') : 'N/A';
+      const comments = asset.comments || 'Sin comentarios';
+      
+      const popupHTML = `
+        <div style="min-width: 200px; padding: 4px;">
+          <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold; color: #333;">${asset.name}</h3>
+          <div style="font-size: 13px; line-height: 1.6;">
+            <p style="margin: 4px 0;"><strong>Tipo:</strong> ${asset.type}</p>
+            <p style="margin: 4px 0;"><strong>Latitud:</strong> ${Number(asset.lat).toFixed(5)}</p>
+            <p style="margin: 4px 0;"><strong>Longitud:</strong> ${Number(asset.lng).toFixed(5)}</p>
+            <p style="margin: 4px 0;"><strong>Creado por:</strong> ${creatorEmail}</p>
+            <p style="margin: 4px 0;"><strong>Fecha:</strong> ${createdAt}</p>
+            <p style="margin: 4px 0;"><strong>Comentarios:</strong> ${comments}</p>
+          </div>
+        </div>
+      `;
+
       const marker = new mapboxgl.Marker(el)
         .setLngLat([Number(asset.lng), Number(asset.lat)])
         .setPopup(
-          new mapboxgl.Popup().setHTML(
-            `<strong>${asset.name}</strong><br>Tipo: ${asset.type}`,
-          ),
+          new mapboxgl.Popup({ maxWidth: '300px' }).setHTML(popupHTML),
         )
         .addTo(map.current);
 
