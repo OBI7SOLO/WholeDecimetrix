@@ -88,7 +88,7 @@ export default function Dashboard() {
         <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 2 }}>
           <Avatar
             sx={{
-              bgcolor: userRole === 'admin' ? '#0ea5e9' : '#64748b',
+              bgcolor: userRole === 'admin' ? '#f57f17' : '#1565c0',
               width: 40,
               height: 40,
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
@@ -96,9 +96,21 @@ export default function Dashboard() {
           >
             {userRole === 'admin' ? <AdminPanelSettingsIcon /> : <PersonIcon />}
           </Avatar>
-          <Typography variant='body1' sx={{ color: '#0f172a' }}>
-            Rol: <strong>{userRole}</strong>
-          </Typography>
+          <Box
+            sx={{
+              px: 2,
+              py: 0.5,
+              borderRadius: 2,
+              backgroundColor: userRole === 'admin' ? '#fff8e1' : '#e3f2fd',
+              color: userRole === 'admin' ? '#f57f17' : '#1565c0',
+              fontWeight: 600,
+              border: '1px solid',
+              borderColor: userRole === 'admin' ? '#ffecb3' : '#bbdefb',
+              textTransform: 'capitalize',
+            }}
+          >
+            {userRole}
+          </Box>
           <Button
             variant='contained'
             color='error'

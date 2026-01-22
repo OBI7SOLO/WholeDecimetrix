@@ -182,9 +182,13 @@ export default function UsersTable() {
                       padding: '4px 8px',
                       borderRadius: '4px',
                       backgroundColor:
-                        user.role === 'admin' ? '#ffebee' : '#e3f2fd',
-                      color: user.role === 'admin' ? '#c62828' : '#1565c0',
+                        user.role === 'admin' ? '#fff8e1' : '#e3f2fd',
+                      color: user.role === 'admin' ? '#f57f17' : '#1565c0',
                       fontWeight: 'bold',
+                      border: `1px solid ${
+                        user.role === 'admin' ? '#ffecb3' : '#bbdefb'
+                      }`,
+                      textTransform: 'capitalize',
                     }}
                   >
                     {user.role}
