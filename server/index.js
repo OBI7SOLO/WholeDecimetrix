@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const path = require('path');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const socketIo = require('socket.io');
@@ -171,18 +172,30 @@ app.delete('/users/:id', authenticateJWT, requireAdmin, async (req, res) => {
   res.sendStatus(204);
 });
 
+// Serve static assets in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
+  });
+}
+
 const server = app.listen(process.env.PORT || 5001, () => {
   console.log(`Server running on port ${process.env.PORT || 5001}`);
 });
 
 const io = socketIo(server, {
   cors: {
-    origin: [
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-      'http://localhost:5174',
-      'http://127.0.0.1:5174',
-    ],
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? false // Disable CORS for same-origin in production
+        : [
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+            'http://localhost:5174',
+            'http://127.0.0.1:5174',
+          ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   },
