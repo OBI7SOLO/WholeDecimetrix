@@ -26,7 +26,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import CreateAssetModal from './CreateAssetModal';
 import useSocket from '../hooks/useSocket';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:5001');
 const MAPBOX_TOKEN = (import.meta.env.VITE_MAPBOX_TOKEN || '').trim();
 
 const MAP_STYLES = {
