@@ -466,16 +466,22 @@ export default function Map() {
           }}
         >
           <ToggleButton value='streets' aria-label='Calles'>
-            <MapIcon sx={{ mr: 1, fontSize: 20 }} />
-            Mapa
+            <MapIcon sx={{ mr: { xs: 0, sm: 1 }, fontSize: 20 }} />
+            <Box component='span' sx={{ display: { xs: 'none', sm: 'block' } }}>
+              Mapa
+            </Box>
           </ToggleButton>
           <ToggleButton value='satellite' aria-label='Satélite'>
-            <SatelliteAltIcon sx={{ mr: 1, fontSize: 20 }} />
-            Satélite
+            <SatelliteAltIcon sx={{ mr: { xs: 0, sm: 1 }, fontSize: 20 }} />
+            <Box component='span' sx={{ display: { xs: 'none', sm: 'block' } }}>
+              Satélite
+            </Box>
           </ToggleButton>
           <ToggleButton value='outdoors' aria-label='Terreno'>
-            <TerrainIcon sx={{ mr: 1, fontSize: 20 }} />
-            Terreno
+            <TerrainIcon sx={{ mr: { xs: 0, sm: 1 }, fontSize: 20 }} />
+            <Box component='span' sx={{ display: { xs: 'none', sm: 'block' } }}>
+              Terreno
+            </Box>
           </ToggleButton>
         </ToggleButtonGroup>
       </Paper>

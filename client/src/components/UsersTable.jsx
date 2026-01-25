@@ -246,7 +246,7 @@ export default function UsersTable() {
         sx={{
           borderRadius: 3,
           boxShadow: '0 16px 40px rgba(15,23,42,0.12)',
-          overflow: 'hidden',
+          overflowX: 'auto',
         }}
       >
         <Table>

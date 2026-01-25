@@ -12,6 +12,7 @@ import {
   Select,
   MenuItem,
   Alert,
+  Stack,
 } from '@mui/material';
 
 const API_URL =
@@ -158,7 +159,11 @@ export default function CreateAssetModal({
             <MenuItem value='Transformador'>Transformador</MenuItem>
           </Select>
         </FormControl>
-        <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={2}
+          sx={{ mt: 1 }}
+        >
           <TextField
             fullWidth
             label='Latitud'
@@ -181,7 +186,7 @@ export default function CreateAssetModal({
             inputProps={{ step: '0.0001' }}
             InputProps={{ sx: { borderRadius: 2 } }}
           />
-        </div>
+        </Stack>
         <TextField
           fullWidth
           label='Comentarios'
