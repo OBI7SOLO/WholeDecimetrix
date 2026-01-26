@@ -250,6 +250,24 @@ export default function Map() {
   }, []);
 
   useEffect(() => {
+    //     const geojson = {
+    //   type: 'FeatureCollection',
+    //   features: assets.map(asset => ({
+    //     type: 'Feature',
+    //     geometry: {
+    //       type: 'Point',
+    //       coordinates: [/* longitud, latitud */] // ¡Ojo! Mapbox usa [lng, lat], Mongo a veces al revés
+    //     },
+    //     properties: {
+    //       id: asset._id,
+    //       name: asset.name,
+    //       type: asset.type,
+    //       description: asset.comments
+    //       // ... otros datos
+    //     }
+    //   }))
+    // };
+
     if (!map.current || !assets) return;
 
     // Limpiar marcadores anteriores
