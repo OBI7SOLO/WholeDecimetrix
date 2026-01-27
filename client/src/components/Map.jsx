@@ -250,102 +250,125 @@ export default function Map() {
   }, []);
 
   useEffect(() => {
-    //     const geojson = {
-    //   type: 'FeatureCollection',
-    //   features: assets.map(asset => ({
-    //     type: 'Feature',
-    //     geometry: {
-    //       type: 'Point',
-    //       coordinates: [/* longitud, latitud */] // ¡Ojo! Mapbox usa [lng, lat], Mongo a veces al revés
-    //     },
-    //     properties: {
-    //       id: asset._id,
-    //       name: asset.name,
-    //       type: asset.type,
-    //       description: asset.comments
-    //       // ... otros datos
-    //     }
-    //   }))
-    // };
-
     if (!map.current || !assets) return;
 
-    // Limpiar marcadores anteriores
-    markers.forEach((marker) => marker.remove());
+    if (markers.length > 0) {
+      markers.forEach((marker) => marker.remove());
+      setMarkers([]);
+    }
 
-    // Filtrar activos válidos
-    const validAssets = assets.filter((a) =>
-      isValidLngLat(Number(a.lng), Number(a.lat)),
-    );
+    const sourceId = 'assets-source';
+    const layerId = 'assets-layer';
 
-    // Crear nuevos marcadores
-    const newMarkers = validAssets.map((asset) => {
-      const el = document.createElement('div');
-      el.style.width = '30px';
-      el.style.height = '30px';
-      el.style.backgroundColor = getMarkerColor(asset.type);
-      el.style.borderRadius = '50%';
-      el.style.cursor = 'pointer';
-      el.style.border = '2px solid white';
-      el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
-      el.style.display = 'flex';
-      el.style.justifyContent = 'center';
-      el.style.alignItems = 'center';
+    const onLayerClick = (e) => {
+      const feature = e.features[0];
+      const coordinates = feature.geometry.coordinates.slice();
+      const { name, type, comments, creatorEmail, createdAt, lat, lng } =
+        feature.properties;
 
-      let IconComponent;
-      switch (asset.type) {
-        case 'Pozo':
-          IconComponent = WaterDropIcon;
-          break;
-        case 'Motor':
-          IconComponent = SettingsIcon;
-          break;
-        case 'Transformador':
-          IconComponent = ElectricBoltIcon;
-          break;
-        default:
-          IconComponent = null;
+      while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+        coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
       }
 
-      if (IconComponent) {
-        el.innerHTML = renderToStaticMarkup(
-          <IconComponent style={{ fontSize: '18px', color: 'white' }} />,
-        );
-      }
-
-      // Crear HTML para el popup con toda la información del activo
-      const creatorEmail = asset.createdBy?.email || 'N/A';
-      const createdAt = asset.createdAt
-        ? new Date(asset.createdAt).toLocaleString('es-ES')
+      const formattedDate = createdAt
+        ? new Date(createdAt).toLocaleString('es-ES')
         : 'N/A';
-      const comments = asset.comments || 'Sin comentarios';
 
       const popupHTML = `
         <div style="min-width: 200px; padding: 4px;">
-          <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold; color: #333;">${asset.name}</h3>
+          <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold; color: #333;">${name}</h3>
           <div style="font-size: 13px; line-height: 1.6;">
-            <p style="margin: 4px 0;"><strong>Tipo:</strong> ${asset.type}</p>
-            <p style="margin: 4px 0;"><strong>Latitud:</strong> ${Number(asset.lat).toFixed(5)}</p>
-            <p style="margin: 4px 0;"><strong>Longitud:</strong> ${Number(asset.lng).toFixed(5)}</p>
+            <p style="margin: 4px 0;"><strong>Tipo:</strong> ${type}</p>
+            <p style="margin: 4px 0;"><strong>Latitud:</strong> ${Number(lat).toFixed(5)}</p>
+            <p style="margin: 4px 0;"><strong>Longitud:</strong> ${Number(lng).toFixed(5)}</p>
             <p style="margin: 4px 0;"><strong>Creado por:</strong> ${creatorEmail}</p>
-            <p style="margin: 4px 0;"><strong>Fecha:</strong> ${createdAt}</p>
+            <p style="margin: 4px 0;"><strong>Fecha:</strong> ${formattedDate}</p>
             <p style="margin: 4px 0;"><strong>Comentarios:</strong> ${comments}</p>
           </div>
         </div>
       `;
 
-      const marker = new mapboxgl.Marker(el)
-        .setLngLat([Number(asset.lng), Number(asset.lat)])
-        .setPopup(new mapboxgl.Popup({ maxWidth: '300px' }).setHTML(popupHTML))
+      new mapboxgl.Popup({ maxWidth: '300px' })
+        .setLngLat(coordinates)
+        .setHTML(popupHTML)
         .addTo(map.current);
+    };
 
-      return marker;
-    });
+    const onMouseEnter = () => {
+      map.current.getCanvas().style.cursor = 'pointer';
+    };
 
-    setMarkers(newMarkers);
+    const onMouseLeave = () => {
+      map.current.getCanvas().style.cursor = '';
+    };
 
-    // Ajustar vista: si hay activos válidos, ajustar a sus bounds; si no, volver al default
-    if (map.current) {
+    const updateLayer = () => {
+      if (!map.current) return;
+
+      const validAssets = assets.filter((a) =>
+        isValidLngLat(Number(a.lng), Number(a.lat)),
+      );
+
+      const geojson = {
+        type: 'FeatureCollection',
+        features: validAssets.map((asset) => ({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [Number(asset.lng), Number(asset.lat)],
+          },
+          properties: {
+            id: asset._id,
+            name: asset.name,
+            type: asset.type,
+            comments: asset.comments || 'Sin comentarios',
+            creatorEmail: asset.createdBy?.email || 'N/A',
+            createdAt: asset.createdAt,
+            lat: asset.lat,
+            lng: asset.lng,
+          },
+        })),
+      };
+
+      if (map.current.getSource(sourceId)) {
+        map.current.getSource(sourceId).setData(geojson);
+      } else {
+        map.current.addSource(sourceId, {
+          type: 'geojson',
+          data: geojson,
+        });
+
+        map.current.addLayer({
+          id: layerId,
+          type: 'circle',
+          source: sourceId,
+          paint: {
+            'circle-radius': 8,
+            'circle-color': [
+              'match',
+              ['get', 'type'],
+              'Pozo',
+              '#000000',
+              'Motor',
+              '#D32F2F',
+              'Transformador',
+              '#FFC107',
+              '#9E9E9E',
+            ],
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff',
+          },
+        });
+      }
+
+      map.current.off('click', layerId, onLayerClick);
+      map.current.off('mouseenter', layerId, onMouseEnter);
+      map.current.off('mouseleave', layerId, onMouseLeave);
+
+      map.current.on('click', layerId, onLayerClick);
+      map.current.on('mouseenter', layerId, onMouseEnter);
+      map.current.on('mouseleave', layerId, onMouseLeave);
+
       if (validAssets.length > 0) {
         const bounds = new mapboxgl.LngLatBounds();
         validAssets.forEach((asset) => {
@@ -355,8 +378,22 @@ export default function Map() {
       } else {
         map.current.flyTo({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM });
       }
+    };
+
+    if (map.current.isStyleLoaded()) {
+      updateLayer();
+    } else {
+      map.current.once('style.load', updateLayer);
     }
-  }, [assets]);
+
+    return () => {
+      if (map.current) {
+        map.current.off('click', layerId, onLayerClick);
+        map.current.off('mouseenter', layerId, onMouseEnter);
+        map.current.off('mouseleave', layerId, onMouseLeave);
+      }
+    };
+  }, [assets, currentStyle]);
 
   const removeSelectedPing = () => {
     try {
