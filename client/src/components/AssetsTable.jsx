@@ -21,8 +21,12 @@ import {
   DialogActions,
   TextField,
   Stack,
-  Snackbar, // Agregado
+  Snackbar,
+  TablePagination,
+  TableSortLabel,
+  InputAdornment,
 } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
@@ -55,6 +59,13 @@ export default function AssetsTable() {
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState(null);
+
+  // Estados para tabla (paginación, orden, búsqueda)
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [orderBy, setOrderBy] = useState('name');
+  const [order, setOrder] = useState('asc'); // 'asc' or 'desc'
 
   // Estados para el diálogo de eliminación
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -229,6 +240,59 @@ export default function AssetsTable() {
     setAssetToDelete(null);
   };
 
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const visibleAssets = useMemo(() => {
+    const filtered = assets.filter(
+      (asset) =>
+        asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        asset.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (asset.comments &&
+          asset.comments.toLowerCase().includes(searchTerm.toLowerCase())),
+    );
+
+    return filtered.sort((a, b) => {
+      let valueA = a[orderBy] || '';
+      let valueB = b[orderBy] || '';
+
+      // Extracción segura para ordenamiento
+      if (orderBy === 'createdBy') {
+        valueA =
+          typeof a.createdBy === 'object'
+            ? a.createdBy?.email || ''
+            : String(a.createdBy || '');
+        valueB =
+          typeof b.createdBy === 'object'
+            ? b.createdBy?.email || ''
+            : String(b.createdBy || '');
+      }
+
+      if (typeof valueA === 'string') valueA = valueA.toLowerCase();
+      if (typeof valueB === 'string') valueB = valueB.toLowerCase();
+
+      if (valueB < valueA) {
+        return order === 'asc' ? 1 : -1;
+      }
+      if (valueB > valueA) {
+        return order === 'asc' ? -1 : 1;
+      }
+      return 0;
+    });
+  }, [assets, searchTerm, orderBy, order]);
+
   if (loading) return <CircularProgress />;
   if (error) return <Alert severity='error'>{error}</Alert>;
 
@@ -266,9 +330,32 @@ export default function AssetsTable() {
 
   return (
     <Box sx={{ width: '100%', maxWidth: 1040, mx: 'auto' }}>
-      <Typography variant='h6' sx={{ mb: 2, fontWeight: 700 }}>
-        Activos registrados
-      </Typography>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent='space-between'
+        alignItems='center'
+        spacing={2}
+        sx={{ mb: 2 }}
+      >
+        <Typography variant='h6' sx={{ fontWeight: 700 }}>
+          Activos registrados
+        </Typography>
+        <TextField
+          size='small'
+          placeholder='Buscar activo...'
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position='start'>
+                <SearchIcon color='disabled' />
+              </InputAdornment>
+            ),
+            sx: { borderRadius: 2, backgroundColor: 'white' },
+          }}
+          sx={{ width: { xs: '100%', sm: 250 } }}
+        />
+      </Stack>
       <TableContainer
         component={Paper}
         sx={{
@@ -280,19 +367,37 @@ export default function AssetsTable() {
         <Table>
           <TableHead>
             <TableRow sx={{ backgroundColor: '#f8fafc' }}>
-              <TableCell sx={{ fontWeight: 'bold' }}>Nombre</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Tipo</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Latitud</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Longitud</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Creado por</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Comentarios</TableCell>
+              {[
+                { id: 'name', label: 'Nombre' },
+                { id: 'type', label: 'Tipo' },
+                { id: 'lat', label: 'Latitud' },
+                { id: 'lng', label: 'Longitud' },
+                { id: 'createdBy', label: 'Creado por' },
+                { id: 'comments', label: 'Comentarios' },
+              ].map((headCell) => (
+                <TableCell
+                  key={headCell.id}
+                  sx={{ fontWeight: 'bold' }}
+                  sortDirection={orderBy === headCell.id ? order : false}
+                >
+                  <TableSortLabel
+                    active={orderBy === headCell.id}
+                    direction={orderBy === headCell.id ? order : 'asc'}
+                    onClick={() => handleRequestSort(headCell.id)}
+                  >
+                    {headCell.label}
+                  </TableSortLabel>
+                </TableCell>
+              ))}
               <TableCell sx={{ fontWeight: 'bold' }} align='right'>
                 Acciones
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {assets.map((asset) => {
+            {visibleAssets
+              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+              .map((asset) => {
               const creatorId = asset.createdBy?._id || asset.createdBy;
               const isOwner =
                 userRole === 'admin' || String(creatorId) === String(userId);
@@ -359,6 +464,17 @@ export default function AssetsTable() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component='div'
+        count={visibleAssets.length}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        labelRowsPerPage='Filas por página'
+      />
 
       {/* Dialogo de eliminación (Popup Centrado) */}
       <Dialog

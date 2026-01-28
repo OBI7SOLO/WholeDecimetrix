@@ -26,7 +26,11 @@ import {
   Box,
   Typography,
   Snackbar,
+  TablePagination,
+  TableSortLabel,
+  InputAdornment,
 } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
@@ -92,6 +96,52 @@ export default function UsersTable() {
   // Estados para el diálogo de eliminación
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+
+  // Estados para tabla (paginación, orden, búsqueda)
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [orderBy, setOrderBy] = useState('email');
+  const [order, setOrder] = useState('asc');
+
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const visibleUsers = useMemo(() => {
+    const filtered = users.filter(
+      (user) =>
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.role.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+
+    return filtered.sort((a, b) => {
+      let valueA = a[orderBy] || '';
+      let valueB = b[orderBy] || '';
+
+      if (typeof valueA === 'string') valueA = valueA.toLowerCase();
+      if (typeof valueB === 'string') valueB = valueB.toLowerCase();
+
+      if (valueB < valueA) {
+        return order === 'asc' ? 1 : -1;
+      }
+      if (valueB > valueA) {
+        return order === 'asc' ? -1 : 1;
+      }
+      return 0;
+    });
+  }, [users, searchTerm, orderBy, order]);
 
   const loadUsers = useMemo(
     () =>
