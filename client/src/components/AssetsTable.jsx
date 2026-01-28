@@ -25,6 +25,7 @@ import {
   TablePagination,
   TableSortLabel,
   InputAdornment,
+  Skeleton,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 
@@ -293,7 +294,54 @@ export default function AssetsTable() {
     });
   }, [assets, searchTerm, orderBy, order]);
 
-  if (loading) return <CircularProgress />;
+  if (loading)
+    return (
+      <Box sx={{ width: '100%', maxWidth: 1040, mx: 'auto' }}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          justifyContent='space-between'
+          alignItems='center'
+          spacing={2}
+          sx={{ mb: 2 }}
+        >
+          <Skeleton variant='text' width={220} height={40} />
+          <Skeleton variant='rectangular' width={250} height={40} />
+        </Stack>
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: 3,
+            boxShadow: '0 16px 40px rgba(15,23,42,0.12)',
+            overflow: 'hidden',
+            border: '1px solid rgba(15,23,42,0.08)',
+          }}
+        >
+          {Array.from({ length: 5 }).map((_, rowIndex) => (
+            <Box
+              key={rowIndex}
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr',
+                gap: 2,
+                px: 2,
+                py: 1,
+                borderBottom:
+                  rowIndex === 4 ? 'none' : '1px solid rgba(15,23,42,0.08)',
+              }}
+            >
+              {Array.from({ length: 6 }).map((__, cellIndex) => (
+                <Skeleton
+                  key={cellIndex}
+                  variant='rectangular'
+                  height={24}
+                  animation='wave'
+                />
+              ))}
+            </Box>
+          ))}
+        </Paper>
+      </Box>
+    );
   if (error) return <Alert severity='error'>{error}</Alert>;
 
   const formatCoord = (value) =>

@@ -29,6 +29,7 @@ import {
   TablePagination,
   TableSortLabel,
   InputAdornment,
+  Skeleton,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 
@@ -281,16 +282,94 @@ export default function UsersTable() {
     setUserToDelete(null);
   };
 
-  if (loading) return <CircularProgress />;
+  if (loading)
+    return (
+      <Box sx={{ maxWidth: 900, mx: 'auto', width: '100%' }}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          justifyContent='space-between'
+          alignItems='center'
+          spacing={2}
+          sx={{ mb: 2 }}
+        >
+          <Skeleton variant='text' width={220} height={40} />
+          <Skeleton variant='rectangular' width={250} height={40} />
+          <Skeleton variant='rectangular' width={130} height={40} />
+        </Stack>
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: 3,
+            boxShadow: '0 16px 40px rgba(15,23,42,0.12)',
+            overflow: 'hidden',
+            border: '1px solid rgba(15,23,42,0.08)',
+          }}
+        >
+          {Array.from({ length: 4 }).map((_, rowIndex) => (
+            <Box
+              key={rowIndex}
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: '3fr 2fr 2fr',
+                gap: 2,
+                px: 2,
+                py: 1,
+                alignItems: 'center',
+                borderBottom:
+                  rowIndex === 3 ? 'none' : '1px solid rgba(15,23,42,0.08)',
+              }}
+            >
+              {Array.from({ length: 3 }).map((__, cellIndex) => (
+                <Skeleton
+                  key={cellIndex}
+                  variant='rectangular'
+                  height={24}
+                  animation='wave'
+                />
+              ))}
+            </Box>
+          ))}
+        </Paper>
+      </Box>
+    );
   if (error) return <Alert severity='error'>{error}</Alert>;
+
+  const paginatedUsers = visibleUsers.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage,
+  );
 
   return (
     <Box sx={{ maxWidth: 900, mx: 'auto', width: '100%' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent='space-between'
+        alignItems='center'
+        spacing={2}
+        sx={{ mb: 2 }}
+      >
+        <Typography variant='h6' sx={{ fontWeight: 700 }}>
+          Usuarios del sistema
+        </Typography>
+        <TextField
+          size='small'
+          placeholder='Buscar usuario...'
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position='start'>
+                <SearchIcon color='disabled' />
+              </InputAdornment>
+            ),
+            sx: { borderRadius: 2, backgroundColor: 'white' },
+          }}
+          sx={{ width: { xs: '100%', sm: 250 } }}
+        />
         <Button variant='contained' onClick={openCreate}>
           Crear Usuario
         </Button>
-      </Box>
+      </Stack>
       <TableContainer
         component={Paper}
         sx={{
@@ -302,15 +381,31 @@ export default function UsersTable() {
         <Table>
           <TableHead>
             <TableRow sx={{ backgroundColor: '#f8fafc' }}>
-              <TableCell sx={{ fontWeight: 'bold' }}>Email</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Rol</TableCell>
+              {[
+                { id: 'email', label: 'Email' },
+                { id: 'role', label: 'Rol' },
+              ].map((headCell) => (
+                <TableCell
+                  key={headCell.id}
+                  sortDirection={orderBy === headCell.id ? order : false}
+                  sx={{ fontWeight: 'bold' }}
+                >
+                  <TableSortLabel
+                    active={orderBy === headCell.id}
+                    direction={orderBy === headCell.id ? order : 'asc'}
+                    onClick={() => handleRequestSort(headCell.id)}
+                  >
+                    {headCell.label}
+                  </TableSortLabel>
+                </TableCell>
+              ))}
               <TableCell sx={{ fontWeight: 'bold' }} align='right'>
                 Acciones
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {users.map((user) => (
+            {paginatedUsers.map((user) => (
               <TableRow key={user._id} hover>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
@@ -356,6 +451,17 @@ export default function UsersTable() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component='div'
+        count={visibleUsers.length}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        labelRowsPerPage='Filas por página'
+      />
 
       {/* Dialogo de eliminación (Popup Centrado) */}
       <Dialog
@@ -465,19 +571,20 @@ export default function UsersTable() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={4000}
+        onClose={() => setToast({ ...toast, open: false })}
+      >
+        <Alert
+          onClose={() => setToast({ ...toast, open: false })}
+          severity={toast.severity}
+          sx={{ width: '100%' }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
-  <Snackbar
-    open={toast.open}
-    autoHideDuration={4000}
-    onClose={() => setToast({ ...toast, open: false })}
-  >
-    <Alert
-      onClose={() => setToast({ ...toast, open: false })}
-      severity={toast.severity}
-      sx={{ width: '100%' }}
-    >
-      {toast.message}
-    </Alert>
-  </Snackbar>;
 }

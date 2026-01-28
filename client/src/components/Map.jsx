@@ -22,7 +22,6 @@ import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ElectricBoltIcon from '@mui/icons-material/ElectricBolt';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
-import { renderToStaticMarkup } from 'react-dom/server';
 import CreateAssetModal from './CreateAssetModal';
 import useSocket from '../hooks/useSocket';
 
@@ -83,15 +82,6 @@ const fetcher = async (url) => {
   return response.json();
 };
 
-const getMarkerColor = (type) => {
-  const colors = {
-    Pozo: '#000000', // Negro
-    Motor: '#D32F2F', // Rojo
-    Transformador: '#FFC107', // Amarillo/Dorado
-  };
-  return colors[type] || '#9E9E9E'; // Gris para tipos desconocidos
-};
-
 const isValidLngLat = (lng, lat) =>
   Number.isFinite(lng) &&
   Number.isFinite(lat) &&
@@ -107,7 +97,6 @@ export default function Map() {
   const { token } = useSelector((state) => state.auth);
   const [openModal, setOpenModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
-  const [markers, setMarkers] = useState([]);
   const selectedMarker = useRef(null);
   const [selectMode, setSelectMode] = useState(true);
   const selectModeRef = useRef(selectMode);
@@ -252,31 +241,54 @@ export default function Map() {
   useEffect(() => {
     if (!map.current || !assets) return;
 
-    if (markers.length > 0) {
-      markers.forEach((marker) => marker.remove());
-      setMarkers([]);
-    }
-
     const sourceId = 'assets-source';
-    const layerId = 'assets-layer';
+    const clusterLayerId = 'assets-clusters';
+    const clusterCountLayerId = 'assets-cluster-count';
+    const pointLayerId = 'assets-points';
 
-    const onLayerClick = (e) => {
-      const feature = e.features[0];
-      const coordinates = feature.geometry.coordinates.slice();
+    const validAssets = assets.filter((asset) =>
+      isValidLngLat(Number(asset.lng), Number(asset.lat)),
+    );
+
+    const geojson = {
+      type: 'FeatureCollection',
+      features: validAssets.map((asset) => ({
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [Number(asset.lng), Number(asset.lat)],
+        },
+        properties: {
+          id: asset._id,
+          name: asset.name,
+          type: asset.type,
+          comments: asset.comments || 'Sin comentarios',
+          creatorEmail: asset.createdBy?.email || 'N/A',
+          createdAt: asset.createdAt,
+          lat: asset.lat,
+          lng: asset.lng,
+        },
+      })),
+    };
+
+    const buildPopup = (feature, lngLat) => {
       const { name, type, comments, creatorEmail, createdAt, lat, lng } =
-        feature.properties;
-
-      while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
-        coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
-      }
+        feature.properties || {};
 
       const formattedDate = createdAt
         ? new Date(createdAt).toLocaleString('es-ES')
         : 'N/A';
 
+      const coordinates = feature.geometry.coordinates.slice();
+      while (Math.abs(lngLat.lng - coordinates[0]) > 180) {
+        coordinates[0] += lngLat.lng > coordinates[0] ? 360 : -360;
+      }
+
       const popupHTML = `
         <div style="min-width: 200px; padding: 4px;">
-          <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold; color: #333;">${name}</h3>
+          <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold; color: #333;">
+            ${name}
+          </h3>
           <div style="font-size: 13px; line-height: 1.6;">
             <p style="margin: 4px 0;"><strong>Tipo:</strong> ${type}</p>
             <p style="margin: 4px 0;"><strong>Latitud:</strong> ${Number(lat).toFixed(5)}</p>
@@ -294,54 +306,114 @@ export default function Map() {
         .addTo(map.current);
     };
 
-    const onMouseEnter = () => {
-      map.current.getCanvas().style.cursor = 'pointer';
-    };
-
-    const onMouseLeave = () => {
-      map.current.getCanvas().style.cursor = '';
-    };
-
-    const updateLayer = () => {
+    const handleClusterClick = (event) => {
       if (!map.current) return;
+      const features = map.current.queryRenderedFeatures(event.point, {
+        layers: [clusterLayerId],
+      });
+      if (!features.length) return;
 
-      const validAssets = assets.filter((a) =>
-        isValidLngLat(Number(a.lng), Number(a.lat)),
-      );
+      const clusterId = features[0].properties.cluster_id;
+      const source = map.current.getSource(sourceId);
+      if (!source || typeof source.getClusterExpansionZoom !== 'function')
+        return;
+      source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err) return;
+        map.current.easeTo({
+          center: features[0].geometry.coordinates,
+          zoom,
+          duration: 400,
+        });
+      });
+    };
 
-      const geojson = {
-        type: 'FeatureCollection',
-        features: validAssets.map((asset) => ({
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: [Number(asset.lng), Number(asset.lat)],
-          },
-          properties: {
-            id: asset._id,
-            name: asset.name,
-            type: asset.type,
-            comments: asset.comments || 'Sin comentarios',
-            creatorEmail: asset.createdBy?.email || 'N/A',
-            createdAt: asset.createdAt,
-            lat: asset.lat,
-            lng: asset.lng,
-          },
-        })),
-      };
+    const handlePointClick = (event) => {
+      if (!event.features || !event.features[0]) return;
+      buildPopup(event.features[0], event.lngLat);
+    };
+
+    const handleMouseEnter = () => {
+      if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+    };
+
+    const handleMouseLeave = () => {
+      if (map.current) map.current.getCanvas().style.cursor = '';
+    };
+
+    const addOrUpdateSource = () => {
+      if (!map.current) return;
 
       if (map.current.getSource(sourceId)) {
         map.current.getSource(sourceId).setData(geojson);
-      } else {
-        map.current.addSource(sourceId, {
-          type: 'geojson',
-          data: geojson,
-        });
+        return;
+      }
 
+      map.current.addSource(sourceId, {
+        type: 'geojson',
+        data: geojson,
+        cluster: true,
+        clusterRadius: 60,
+        clusterMaxZoom: 15,
+      });
+    };
+
+    const addLayers = () => {
+      if (!map.current) return;
+
+      if (!map.current.getLayer(clusterLayerId)) {
         map.current.addLayer({
-          id: layerId,
+          id: clusterLayerId,
           type: 'circle',
           source: sourceId,
+          filter: ['has', 'point_count'],
+          paint: {
+            'circle-color': [
+              'step',
+              ['get', 'point_count'],
+              '#0ea5e9',
+              10,
+              '#0477bf',
+              25,
+              '#0f172a',
+            ],
+            'circle-radius': [
+              'step',
+              ['get', 'point_count'],
+              18,
+              10,
+              24,
+              25,
+              32,
+            ],
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff',
+          },
+        });
+      }
+
+      if (!map.current.getLayer(clusterCountLayerId)) {
+        map.current.addLayer({
+          id: clusterCountLayerId,
+          type: 'symbol',
+          source: sourceId,
+          filter: ['has', 'point_count'],
+          layout: {
+            'text-field': '{point_count_abbreviated}',
+            'text-font': ['Inter ExtraBold', 'Roboto Bold'],
+            'text-size': 12,
+          },
+          paint: {
+            'text-color': '#ffffff',
+          },
+        });
+      }
+
+      if (!map.current.getLayer(pointLayerId)) {
+        map.current.addLayer({
+          id: pointLayerId,
+          type: 'circle',
+          source: sourceId,
+          filter: ['!', ['has', 'point_count']],
           paint: {
             'circle-radius': 8,
             'circle-color': [
@@ -360,14 +432,30 @@ export default function Map() {
           },
         });
       }
+    };
 
-      map.current.off('click', layerId, onLayerClick);
-      map.current.off('mouseenter', layerId, onMouseEnter);
-      map.current.off('mouseleave', layerId, onMouseLeave);
+    const registerEvents = () => {
+      if (!map.current) return;
+      map.current.on('click', clusterLayerId, handleClusterClick);
+      map.current.on('click', pointLayerId, handlePointClick);
+      map.current.on('mouseenter', pointLayerId, handleMouseEnter);
+      map.current.on('mouseleave', pointLayerId, handleMouseLeave);
+    };
 
-      map.current.on('click', layerId, onLayerClick);
-      map.current.on('mouseenter', layerId, onMouseEnter);
-      map.current.on('mouseleave', layerId, onMouseLeave);
+    const unregisterEvents = () => {
+      if (!map.current) return;
+      map.current.off('click', clusterLayerId, handleClusterClick);
+      map.current.off('click', pointLayerId, handlePointClick);
+      map.current.off('mouseenter', pointLayerId, handleMouseEnter);
+      map.current.off('mouseleave', pointLayerId, handleMouseLeave);
+    };
+
+    const updateLayer = () => {
+      if (!map.current) return;
+      addOrUpdateSource();
+      addLayers();
+      unregisterEvents();
+      registerEvents();
 
       if (validAssets.length > 0) {
         const bounds = new mapboxgl.LngLatBounds();
@@ -387,11 +475,7 @@ export default function Map() {
     }
 
     return () => {
-      if (map.current) {
-        map.current.off('click', layerId, onLayerClick);
-        map.current.off('mouseenter', layerId, onMouseEnter);
-        map.current.off('mouseleave', layerId, onMouseLeave);
-      }
+      unregisterEvents();
     };
   }, [assets, currentStyle]);
 
