@@ -398,69 +398,69 @@ export default function AssetsTable() {
             {visibleAssets
               .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
               .map((asset) => {
-              const creatorId = asset.createdBy?._id || asset.createdBy;
-              const isOwner =
-                userRole === 'admin' || String(creatorId) === String(userId);
+                const creatorId = asset.createdBy?._id || asset.createdBy;
+                const isOwner =
+                  userRole === 'admin' || String(creatorId) === String(userId);
 
-              return (
-                <TableRow key={asset._id} hover>
-                  <TableCell>{asset.name}</TableCell>
-                  <TableCell>
-                    <span
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        fontWeight: 'bold',
-                        ...getTypeStyle(asset.type),
-                      }}
-                    >
-                      {asset.type}
-                    </span>
-                  </TableCell>
-                  <TableCell>{formatCoord(asset.lat)}</TableCell>
-                  <TableCell>{formatCoord(asset.lng)}</TableCell>
-                  <TableCell>{formatCreator(asset.createdBy)}</TableCell>
-                  <TableCell sx={{ maxWidth: 200 }}>
-                    <Typography
-                      variant='body2'
-                      sx={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {asset.comments || 'Sin comentarios'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align='right'>
-                    <Stack
-                      direction='row'
-                      spacing={1}
-                      justifyContent='flex-end'
-                    >
-                      <Button
-                        size='small'
-                        variant='outlined'
-                        onClick={() => openEdit(asset)}
-                        disabled={!isOwner}
+                return (
+                  <TableRow key={asset._id} hover>
+                    <TableCell>{asset.name}</TableCell>
+                    <TableCell>
+                      <span
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontWeight: 'bold',
+                          ...getTypeStyle(asset.type),
+                        }}
                       >
-                        Editar
-                      </Button>
-                      <Button
-                        size='small'
-                        variant='outlined'
-                        color='error'
-                        onClick={() => confirmDelete(asset)}
-                        disabled={!isOwner}
-                        sx={{ borderRadius: 2 }}
+                        {asset.type}
+                      </span>
+                    </TableCell>
+                    <TableCell>{formatCoord(asset.lat)}</TableCell>
+                    <TableCell>{formatCoord(asset.lng)}</TableCell>
+                    <TableCell>{formatCreator(asset.createdBy)}</TableCell>
+                    <TableCell sx={{ maxWidth: 200 }}>
+                      <Typography
+                        variant='body2'
+                        sx={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
                       >
-                        Eliminar
-                      </Button>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+                        {asset.comments || 'Sin comentarios'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align='right'>
+                      <Stack
+                        direction='row'
+                        spacing={1}
+                        justifyContent='flex-end'
+                      >
+                        <Button
+                          size='small'
+                          variant='outlined'
+                          onClick={() => openEdit(asset)}
+                          disabled={!isOwner}
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          size='small'
+                          variant='outlined'
+                          color='error'
+                          onClick={() => confirmDelete(asset)}
+                          disabled={!isOwner}
+                          sx={{ borderRadius: 2 }}
+                        >
+                          Eliminar
+                        </Button>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
           </TableBody>
         </Table>
       </TableContainer>
