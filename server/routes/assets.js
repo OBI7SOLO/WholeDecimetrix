@@ -10,7 +10,12 @@ module.exports = (controllers) => {
   const router = express.Router();
 
   router.get('/', authenticateJWT, controllers.getAssets);
-  router.post('/', authenticateJWT, validateBody(assetCreateSchema), controllers.createAsset);
+  router.post(
+    '/',
+    authenticateJWT,
+    validateBody(assetCreateSchema),
+    controllers.createAsset,
+  );
   router.put(
     '/:id',
     authenticateJWT,

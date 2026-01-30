@@ -5,15 +5,21 @@ const assetTypeEnum = ['Pozo', 'Motor', 'Transformador'];
 const assetCreateSchema = z.object({
   name: z.string().min(1, 'El nombre es obligatorio'),
   type: z.enum(assetTypeEnum, 'Tipo de activo inválido'),
-  lat: z.number().refine((value) => value >= -90 && value <= 90, 'Latitud inválida'),
-  lng: z.number().refine((value) => value >= -180 && value <= 180, 'Longitud inválida'),
+  lat: z
+    .number()
+    .refine((value) => value >= -90 && value <= 90, 'Latitud inválida'),
+  lng: z
+    .number()
+    .refine((value) => value >= -180 && value <= 180, 'Longitud inválida'),
   comments: z.string().max(1024).optional(),
 });
 
-const assetUpdateSchema = assetCreateSchema.partial().refine(
-  (payload) => Object.keys(payload).length > 0,
-  'Debes enviar al menos un campo para actualizar',
-);
+const assetUpdateSchema = assetCreateSchema
+  .partial()
+  .refine(
+    (payload) => Object.keys(payload).length > 0,
+    'Debes enviar al menos un campo para actualizar',
+  );
 
 const userCreateSchema = z.object({
   email: z.string().email('Correo inválido'),
@@ -21,10 +27,12 @@ const userCreateSchema = z.object({
   role: z.enum(['admin', 'operator'], 'Rol inválido'),
 });
 
-const userUpdateSchema = userCreateSchema.partial().refine(
-  (payload) => Object.keys(payload).length > 0,
-  'Debes enviar al menos un campo para actualizar',
-);
+const userUpdateSchema = userCreateSchema
+  .partial()
+  .refine(
+    (payload) => Object.keys(payload).length > 0,
+    'Debes enviar al menos un campo para actualizar',
+  );
 
 const formatZodErrors = (error) =>
   error.errors.map(({ path, message }) => ({
