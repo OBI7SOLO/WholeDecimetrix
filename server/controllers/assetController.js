@@ -3,7 +3,9 @@ const Asset = require('../models/Asset');
 module.exports = (io) => {
   const getAssets = async (req, res) => {
     const query = req.user.role === 'admin' ? {} : { createdBy: req.user.id };
-    const assets = await Asset.find(query).populate('createdBy', 'email role').lean();
+    const assets = await Asset.find(query)
+      .populate('createdBy', 'email role')
+      .lean();
     res.json(assets);
   };
 
