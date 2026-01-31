@@ -50,7 +50,7 @@ function App() {
           fontFamily: "'Inter', sans-serif",
         },
       }),
-    [mode]
+    [mode],
   );
 
   return (
