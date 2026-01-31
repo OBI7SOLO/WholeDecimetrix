@@ -11,7 +11,9 @@ module.exports = (io) => {
   const getAssets = async (req, res) => {
     try {
       const query = req.user.role === 'admin' ? {} : { createdBy: req.user.id };
-      const assets = await Asset.find(query).populate('createdBy', 'email role').lean();
+      const assets = await Asset.find(query)
+        .populate('createdBy', 'email role')
+        .lean();
       res.json(assets);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -38,7 +40,7 @@ module.exports = (io) => {
 
       Object.assign(asset, req.body);
       await asset.save();
-      
+
       const populated = await asset.populate('createdBy', 'email role');
       io.emit('asset-updated', populated);
       res.json(populated);

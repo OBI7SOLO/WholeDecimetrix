@@ -40,7 +40,7 @@ export const styles = {
     width: { xs: '100%', md: 'auto' },
     minHeight: 52,
     '& .MuiTabs-flexContainer': {
-       justifyContent: { xs: 'center', md: 'flex-start' },
+      justifyContent: { xs: 'center', md: 'flex-start' },
     },
     '& .MuiTab-root': {
       color: '#334155',
