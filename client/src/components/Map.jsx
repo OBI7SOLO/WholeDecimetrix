@@ -14,6 +14,7 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Typography,
+  useTheme,
 } from '@mui/material';
 import MapIcon from '@mui/icons-material/Map';
 import SatelliteAltIcon from '@mui/icons-material/SatelliteAlt';
@@ -547,6 +548,8 @@ export default function Map() {
     removeSelectedPing();
   };
 
+  const theme = useTheme();
+
   const handleAssetCreated = () => {
     mutate(); // Refrescar los activos
     setOpenModal(false);
@@ -563,7 +566,7 @@ export default function Map() {
         style={{
           position: 'absolute',
           inset: 0,
-          background: '#dfe3f0',
+          background: theme.palette.background.default,
           minHeight: '400px',
         }}
         id='map-container'
@@ -578,7 +581,10 @@ export default function Map() {
           zIndex: 1,
           borderRadius: 2,
           overflow: 'hidden',
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          backgroundColor: theme.palette.mode === 'light' 
+            ? 'rgba(255, 255, 255, 0.9)' 
+            : 'rgba(30, 41, 59, 0.9)',
+          backdropFilter: 'blur(8px)',
         }}
       >
         <ToggleButtonGroup
@@ -593,11 +599,20 @@ export default function Map() {
               padding: '8px 12px',
               textTransform: 'none',
               fontWeight: 600,
-              color: '#475569',
+              color: 'text.secondary',
               '&.Mui-selected': {
-                backgroundColor: '#0ea5e9',
+                backgroundColor: theme.palette.primary.main,
                 color: 'white',
                 '&:hover': {
+                  backgroundColor: theme.palette.primary.dark,
+                },
+              },
+              '&:hover': {
+                backgroundColor: theme.palette.action.hover,
+              }
+            },
+          }}
+        >
                   backgroundColor: '#0284c7',
                 },
               },

@@ -30,6 +30,7 @@ import {
   TableSortLabel,
   InputAdornment,
   Skeleton,
+  useTheme,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 
@@ -38,6 +39,7 @@ const API_URL =
   (import.meta.env.PROD ? '' : 'http://localhost:5001');
 
 export default function UsersTable() {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const [users, setUsers] = useState([]);
   const socket = useSocket();
@@ -361,8 +363,7 @@ export default function UsersTable() {
               <InputAdornment position='start'>
                 <SearchIcon color='disabled' />
               </InputAdornment>
-            ),
-            sx: { borderRadius: 2, backgroundColor: 'white' },
+            ),background.paper' },
           }}
           sx={{ width: { xs: '100%', sm: 250 } }}
         />
@@ -374,12 +375,14 @@ export default function UsersTable() {
         component={Paper}
         sx={{
           borderRadius: 3,
-          boxShadow: '0 16px 40px rgba(15,23,42,0.12)',
+          boxShadow: theme.palette.mode === 'light' ? '0 16px 40px rgba(15,23,42,0.12)' : 'none',
           overflowX: 'auto',
+          backgroundImage: 'none',
         }}
       >
         <Table>
           <TableHead>
+            <TableRow sx={{ backgroundColor: 'action.hover
             <TableRow sx={{ backgroundColor: '#f8fafc' }}>
               {[
                 { id: 'email', label: 'Email' },
@@ -413,10 +416,16 @@ export default function UsersTable() {
                     style={{
                       padding: '4px 8px',
                       borderRadius: '4px',
-                      backgroundColor:
-                        user.role === 'admin' ? '#fff8e1' : '#e3f2fd',
-                      color: user.role === 'admin' ? '#f57f17' : '#1565c0',
+                          ? theme.palette.mode === 'dark' ? 'rgba(255, 111, 0, 0.2)' : '#fff8e1' 
+                          : theme.palette.mode === 'dark' ? 'rgba(21, 101, 192, 0.2)' : '#e3f2fd',
+                      color: user.role === 'admin' 
+                          ? theme.palette.mode === 'dark' ? '#ffb74d' : '#f57f17' 
+                          : theme.palette.mode === 'dark' ? '#64b5f6' : '#1565c0',
                       fontWeight: 'bold',
+                      border: `1px solid ${
+                        user.role === 'admin' 
+                          ? theme.palette.mode === 'dark' ? 'rgba(255, 111, 0, 0.5)' : '#ffecb3'
+                          : theme.palette.mode === 'dark' ? 'rgba(21, 101, 192, 0.5)
                       border: `1px solid ${
                         user.role === 'admin' ? '#ffecb3' : '#bbdefb'
                       }`,

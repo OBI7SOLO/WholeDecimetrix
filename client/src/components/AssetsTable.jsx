@@ -26,6 +26,7 @@ import {
   TableSortLabel,
   InputAdornment,
   Skeleton,
+  useTheme,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 
@@ -34,6 +35,7 @@ const API_URL =
   (import.meta.env.PROD ? '' : 'http://localhost:5001');
 
 export default function AssetsTable() {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const { token, userRole } = useSelector((state) => state.auth);
   const [assets, setAssets] = useState([]);
@@ -353,24 +355,25 @@ export default function AssetsTable() {
     return `…${String(createdBy).slice(-6)}`;
   };
 
-  const getTypeStyle = (type) => {
+  const geisDark = theme.palette.mode === 'dark';
     const styles = {
       Pozo: {
-        backgroundColor: '#fce4ec',
-        color: '#c2185b',
+        backgroundColor: isDark ? 'rgba(194, 24, 91, 0.2)' : '#fce4ec',
+        color: isDark ? '#f48fb1' : '#c2185b',
       },
       Motor: {
-        backgroundColor: '#e8f5e9',
-        color: '#2e7d32',
+        backgroundColor: isDark ? 'rgba(46, 125, 50, 0.2)' : '#e8f5e9',
+        color: isDark ? '#81c784' : '#2e7d32',
       },
       Transformador: {
-        backgroundColor: '#e3f2fd',
-        color: '#1565c0',
+        backgroundColor: isDark ? 'rgba(21, 101, 192, 0.2)' : '#e3f2fd',
+        color: isDark ? '#64b5f6' : '#1565c0',
       },
     };
     return (
       styles[type] || {
-        backgroundColor: '#f5f5f5',
+        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f5f5f5',
+        color: isDark ? '#e0e0e0' roundColor: '#f5f5f5',
         color: '#616161',
       }
     );
@@ -397,9 +400,7 @@ export default function AssetsTable() {
             startAdornment: (
               <InputAdornment position='start'>
                 <SearchIcon color='disabled' />
-              </InputAdornment>
-            ),
-            sx: { borderRadius: 2, backgroundColor: 'white' },
+              </InputAdornment>background.paper' },
           }}
           sx={{ width: { xs: '100%', sm: 250 } }}
         />
@@ -408,11 +409,14 @@ export default function AssetsTable() {
         component={Paper}
         sx={{
           borderRadius: 3,
-          boxShadow: '0 16px 40px rgba(15,23,42,0.12)',
+          boxShadow: theme.palette.mode === 'light' ? '0 16px 40px rgba(15,23,42,0.12)' : 'none',
           overflowX: 'auto',
+          backgroundImage: 'none',
         }}
       >
         <Table>
+          <TableHead>
+            <TableRow sx={{ backgroundColor: 'action.hover
           <TableHead>
             <TableRow sx={{ backgroundColor: '#f8fafc' }}>
               {[
