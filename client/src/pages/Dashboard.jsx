@@ -2,15 +2,19 @@ import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../redux/authSlice';
-import { Box, Button, Typography, Tabs, Tab, Avatar } from '@mui/material';
+import { toggleTheme } from '../redux/themeSlice';
+import { Box, Button, Typography, Tabs, Tab, Avatar, IconButton, useTheme } from '@mui/material';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import PersonIcon from '@mui/icons-material/Person';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 import Map from '../components/Map';
 import UsersTable from '../components/UsersTable';
 import AssetsTable from '../components/AssetsTable';
 
 export default function Dashboard() {
   const { userRole } = useSelector((state) => state.auth);
+  const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
@@ -33,7 +37,7 @@ export default function Dashboard() {
         flexDirection: 'column',
         height: '100vh',
         overflow: 'hidden',
-        backgroundColor: '#f5f6fb',
+        backgroundColor: 'background.default',
       }}
     >
       <Box
@@ -50,21 +54,27 @@ export default function Dashboard() {
           px: { xs: 2, md: 3 },
           py: { xs: 2, md: 0 },
           minHeight: { md: HEADER_HEIGHT },
-          background:
-            'linear-gradient(120deg, rgba(255,255,255,0.78), rgba(255,255,255,0.52))',
+          background: theme.palette.mode === 'light'
+            ? 'linear-gradient(120deg, rgba(255,255,255,0.78), rgba(255,255,255,0.52))'
+            : 'linear-gradient(120deg, rgba(30,41,59,0.78), rgba(30,41,59,0.52))',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
-          borderBottom: '1px solid rgba(255,255,255,0.55)',
-          boxShadow: '0 25px 70px rgba(15,23,42,0.18)',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          boxShadow: theme.palette.mode === 'light'
+             ? '0 25px 70px rgba(15,23,42,0.18)'
+             : '0 25px 70px rgba(0,0,0,0.5)',
         }}
       >
         <Typography
           variant='h5'
           sx={{
             fontWeight: 700,
-            color: '#0f172a',
+            color: 'text.primary',
             letterSpacing: '-0.01em',
-            textShadow: '0 6px 18px rgba(255,255,255,0.65)',
+            textShadow: theme.palette.mode === 'light'
+               ? '0 6px 18px rgba(255,255,255,0.65)'
+               : 'none',
             mb: { xs: 1, md: 0 },
             textAlign: { xs: 'center', md: 'left' },
           }}
@@ -80,7 +90,7 @@ export default function Dashboard() {
             width: { xs: '100%', md: 'auto' },
             minHeight: 52,
             '& .MuiTab-root': {
-              color: '#334155',
+              color: 'text.secondary',
               fontWeight: 600,
               textTransform: 'none',
               minHeight: 52,
@@ -88,7 +98,7 @@ export default function Dashboard() {
             '& .MuiTabs-flexContainer': {
               justifyContent: { xs: 'center', md: 'flex-start' },
             },
-            '& .Mui-selected': { color: '#0f172a' },
+            '& .Mui-selected': { color: 'text.primary' },
             '& .MuiTabs-indicator': {
               height: 3,
               borderRadius: 999,
@@ -113,6 +123,9 @@ export default function Dashboard() {
             width: { xs: '100%', md: 'auto' },
           }}
         >
+          <IconButton sx={{ ml: 1 }} onClick={() => dispatch(toggleTheme())} color="inherit">
+            {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+          </IconButton>
           <Avatar
             sx={{
               bgcolor: userRole === 'admin' ? '#f57f17' : '#1565c0',
