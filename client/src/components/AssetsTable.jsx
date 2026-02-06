@@ -30,9 +30,8 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? '' : 'http://localhost:5001');
+import { API_URL } from '../config';
+import { getUserIdFromToken } from '../utils/auth';
 
 export default function AssetsTable() {
   const theme = useTheme();
@@ -48,15 +47,7 @@ export default function AssetsTable() {
     severity: 'success', // 'success' | 'info' | 'warning' | 'error'
   });
 
-  const userId = useMemo(() => {
-    if (!token) return null;
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.id;
-    } catch {
-      return null;
-    }
-  }, [token]);
+  const userId = useMemo(() => getUserIdFromToken(token), [token]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);

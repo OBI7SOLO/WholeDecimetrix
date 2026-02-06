@@ -25,10 +25,8 @@ import ElectricBoltIcon from '@mui/icons-material/ElectricBolt';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import CreateAssetModal from './CreateAssetModal';
 import useSocket from '../hooks/useSocket';
+import { API_URL } from '../config';
 
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? '' : 'http://localhost:5001');
 const MAPBOX_TOKEN = (import.meta.env.VITE_MAPBOX_TOKEN || '').trim();
 
 const MAP_STYLES = {

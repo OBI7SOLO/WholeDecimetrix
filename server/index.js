@@ -3,9 +3,8 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const socketIo = require('socket.io');
+const authRoutes = require('./routes/auth');
 const assetRoutes = require('./routes/assets');
 const userRoutes = require('./routes/users');
 const assetControllerFactory = require('./controllers/assetController');
@@ -33,22 +32,8 @@ mongoose
   .then(() => console.log('MongoDB connected'))
   .catch((err) => console.log(err));
 
-// Import models
-const User = require('./models/User');
-
-// Login endpoint
-app.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ email });
-  if (user && (await bcrypt.compare(password, user.password))) {
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-    );
-    return res.json({ token });
-  }
-  res.sendStatus(401);
-});
+// Routes
+app.use('/auth', authRoutes);
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

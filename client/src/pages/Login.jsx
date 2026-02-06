@@ -14,10 +14,7 @@ import {
 } from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? '' : 'http://localhost:5001');
+import { API_URL } from '../config';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -32,7 +29,7 @@ export default function Login() {
     setError('');
 
     try {
-      const response = await fetch(`${API_URL}/login`, {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -43,9 +40,9 @@ export default function Login() {
       }
 
       const data = await response.json();
-      const decoded = JSON.parse(atob(data.token.split('.')[1]));
+      // const decoded = JSON.parse(atob(data.token.split('.')[1]));
 
-      dispatch(loginSuccess({ token: data.token, userRole: decoded.role }));
+      dispatch(loginSuccess({ token: data.token, userRole: data.role }));
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);

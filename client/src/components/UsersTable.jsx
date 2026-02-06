@@ -33,10 +33,7 @@ import {
   useTheme,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? '' : 'http://localhost:5001');
+import { API_URL } from '../config';
 
 export default function UsersTable() {
   const theme = useTheme();

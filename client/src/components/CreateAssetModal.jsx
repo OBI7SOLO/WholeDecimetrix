@@ -14,10 +14,7 @@ import {
   Alert,
   Stack,
 } from '@mui/material';
-
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? '' : 'http://localhost:5001');
+import { API_URL } from '../config';
 
 export default function CreateAssetModal({
   open,
