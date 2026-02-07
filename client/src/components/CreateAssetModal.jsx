@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
 import {
   Dialog,
   DialogTitle,
@@ -14,7 +13,7 @@ import {
   Alert,
   Stack,
 } from '@mui/material';
-import { API_URL } from '../config';
+import { apiFetch } from '../utils/apiClient';
 
 export default function CreateAssetModal({
   open,
@@ -22,7 +21,6 @@ export default function CreateAssetModal({
   onAssetCreated,
   initialCoords,
 }) {
-  const { token } = useSelector((state) => state.auth);
   const [formData, setFormData] = useState({
     name: '',
     type: '',
@@ -72,12 +70,8 @@ export default function CreateAssetModal({
         );
       }
 
-      const response = await fetch(`${API_URL}/assets`, {
+      const response = await apiFetch('/assets', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           name: formData.name,
           type: formData.type,
@@ -104,7 +98,6 @@ export default function CreateAssetModal({
     setFormData({ name: '', type: '', lat: '', lng: '', comments: '' });
     setError('');
     onClose();
-    // Evitar warning de focus retenido en contenedores aria-hidden
     requestAnimationFrame(() => document.activeElement?.blur());
   };
 

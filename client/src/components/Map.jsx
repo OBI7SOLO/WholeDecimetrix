@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { logout } from '../redux/authSlice';
+import { useSelector } from 'react-redux';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import useSWR from 'swr';
@@ -13,19 +12,16 @@ import {
   Paper,
   ToggleButton,
   ToggleButtonGroup,
-  Typography,
   useTheme,
 } from '@mui/material';
 import MapIcon from '@mui/icons-material/Map';
 import SatelliteAltIcon from '@mui/icons-material/SatelliteAlt';
 import TerrainIcon from '@mui/icons-material/Terrain';
-import WaterDropIcon from '@mui/icons-material/WaterDrop';
-import SettingsIcon from '@mui/icons-material/Settings';
-import ElectricBoltIcon from '@mui/icons-material/ElectricBolt';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import CreateAssetModal from './CreateAssetModal';
 import useSocket from '../hooks/useSocket';
 import { API_URL } from '../config';
+import { getAccessToken } from '../utils/apiClient';
 
 const MAPBOX_TOKEN = (import.meta.env.VITE_MAPBOX_TOKEN || '').trim();
 
@@ -35,7 +31,7 @@ const MAP_STYLES = {
   outdoors: 'mapbox://styles/mapbox/outdoors-v12',
 };
 
-const DEFAULT_CENTER = [-73.68326960304543, 3.8930383166793945]; // Punto solicitado
+const DEFAULT_CENTER = [-73.68326960304543, 3.8930383166793945];
 const DEFAULT_ZOOM = 12;
 const OSM_FALLBACK_STYLE = {
   version: 8,
@@ -44,7 +40,7 @@ const OSM_FALLBACK_STYLE = {
       type: 'raster',
       tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
       tileSize: 256,
-      attribution: '© OpenStreetMap contributors',
+      attribution: '\u00a9 OpenStreetMap contributors',
     },
   },
   layers: [
@@ -58,25 +54,20 @@ const OSM_FALLBACK_STYLE = {
   ],
 };
 
-// Fallback para evitar token undefined
 mapboxgl.accessToken =
   MAPBOX_TOKEN ||
-  // Token público de ejemplo de Mapbox (sin restricciones de dominio)
   'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.-PK5Dwa9eCEi0aYawslZNg';
 
-// Exponer para debugging en consola
 if (typeof window !== 'undefined') {
   window.mapboxgl = mapboxgl;
 }
 
 const fetcher = async (url) => {
-  const token = localStorage.getItem('token');
+  const token = getAccessToken();
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include',
   });
-  if (response.status === 401 || response.status === 403) {
-    throw new Error('Sesión expirada');
-  }
   if (!response.ok) throw new Error('Error fetching assets');
   return response.json();
 };
@@ -92,8 +83,7 @@ const isValidLngLat = (lng, lat) =>
 export default function Map() {
   const mapContainer = useRef(null);
   const map = useRef(null);
-  const dispatch = useDispatch();
-  const { token } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
   const [openModal, setOpenModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const selectedMarker = useRef(null);
@@ -113,16 +103,9 @@ export default function Map() {
     data: assets,
     isLoading,
     mutate,
-    error,
-  } = useSWR(token ? `${API_URL}/assets` : null, fetcher, {
+  } = useSWR(user ? `${API_URL}/assets` : null, fetcher, {
     revalidateOnFocus: false,
   });
-
-  useEffect(() => {
-    if (error && error.message === 'Sesión expirada') {
-      dispatch(logout());
-    }
-  }, [error, dispatch]);
 
   useEffect(() => {
     if (!socket) return;
@@ -133,7 +116,6 @@ export default function Map() {
         message: `Nuevo activo creado: ${asset.name}`,
         severity: 'success',
       });
-      // Refrescar la lista de activos
       mutate();
     });
 
@@ -169,7 +151,6 @@ export default function Map() {
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    // Validar soporte WebGL
     if (!mapboxgl.supported()) {
       setMapError('Tu navegador no soporta WebGL requerido por Mapbox.');
       return;
@@ -183,7 +164,6 @@ export default function Map() {
         zoom: DEFAULT_ZOOM,
       });
 
-      // Controles de navegación (zoom y rotación)
       map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
       let fallbackTimer;
@@ -206,8 +186,6 @@ export default function Map() {
         map.current?.resize();
       });
 
-      // Registrar click para crear ping y abrir modal
-      // Registrar click para crear ping y abrir modal si el modo selección está activo
       clickListenerRef.current = (e) => {
         if (selectModeRef.current) handleMapClick(e);
       };
@@ -223,7 +201,7 @@ export default function Map() {
         );
         applyFallback();
       });
-    } catch (err) {
+    } catch {
       setMapError('No se pudo inicializar Mapbox.');
     }
 
@@ -484,7 +462,7 @@ export default function Map() {
         selectedMarker.current.remove();
         selectedMarker.current = null;
       }
-    } catch (err) {
+    } catch {
       // ignore
     }
     setSelectedLocation(null);
@@ -549,7 +527,7 @@ export default function Map() {
   const theme = useTheme();
 
   const handleAssetCreated = () => {
-    mutate(); // Refrescar los activos
+    mutate();
     setOpenModal(false);
     removeSelectedPing();
   };
@@ -579,9 +557,10 @@ export default function Map() {
           zIndex: 1,
           borderRadius: 2,
           overflow: 'hidden',
-          backgroundColor: theme.palette.mode === 'light' 
-            ? 'rgba(255, 255, 255, 0.9)' 
-            : 'rgba(30, 41, 59, 0.9)',
+          backgroundColor:
+            theme.palette.mode === 'light'
+              ? 'rgba(255, 255, 255, 0.9)'
+              : 'rgba(30, 41, 59, 0.9)',
           backdropFilter: 'blur(8px)',
         }}
       >
@@ -607,12 +586,6 @@ export default function Map() {
               },
               '&:hover': {
                 backgroundColor: theme.palette.action.hover,
-              }
-            },
-          }}
-        >
-                  backgroundColor: '#0284c7',
-                },
               },
             },
           }}
@@ -623,10 +596,10 @@ export default function Map() {
               Mapa
             </Box>
           </ToggleButton>
-          <ToggleButton value='satellite' aria-label='Satélite'>
+          <ToggleButton value='satellite' aria-label='Sat\u00e9lite'>
             <SatelliteAltIcon sx={{ mr: { xs: 0, sm: 1 }, fontSize: 20 }} />
             <Box component='span' sx={{ display: { xs: 'none', sm: 'block' } }}>
-              Satélite
+              Sat\u00e9lite
             </Box>
           </ToggleButton>
           <ToggleButton value='outdoors' aria-label='Terreno'>
@@ -638,7 +611,6 @@ export default function Map() {
         </ToggleButtonGroup>
       </Paper>
 
-      {/* Botón para recentrar el mapa */}
       <Paper
         elevation={3}
         sx={{

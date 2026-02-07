@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { logout } from '../redux/authSlice';
 import useSocket from '../hooks/useSocket';
 import {
   Table,
@@ -10,7 +8,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  CircularProgress,
   Alert,
   Button,
   Dialog,
@@ -33,11 +30,10 @@ import {
   useTheme,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import { API_URL } from '../config';
+import { apiFetch } from '../utils/apiClient';
 
 export default function UsersTable() {
   const theme = useTheme();
-  const dispatch = useDispatch();
   const [users, setUsers] = useState([]);
   const socket = useSocket();
   const [loading, setLoading] = useState(true);
@@ -48,6 +44,7 @@ export default function UsersTable() {
     severity: 'success',
   });
   const [modalOpen, setModalOpen] = useState(false);
+
   useEffect(() => {
     if (!socket) return;
 
@@ -93,11 +90,9 @@ export default function UsersTable() {
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState(null);
 
-  // Estados para el diálogo de eliminación
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
 
-  // Estados para tabla (paginación, orden, búsqueda)
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [searchTerm, setSearchTerm] = useState('');
@@ -148,15 +143,7 @@ export default function UsersTable() {
       async function fetchUsers() {
         setLoading(true);
         try {
-          const token = localStorage.getItem('token');
-          const response = await fetch(`${API_URL}/users`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          if (response.status === 401 || response.status === 403) {
-            dispatch(logout());
-            throw new Error('Sesión expirada');
-          }
+          const response = await apiFetch('/users');
 
           if (!response.ok) {
             throw new Error('Error obteniendo usuarios');
@@ -201,19 +188,12 @@ export default function UsersTable() {
     if (!selected) return;
     setSaving(true);
     try {
-      const token = localStorage.getItem('token');
       const isNew = !selected._id;
       const method = isNew ? 'POST' : 'PUT';
-      const url = isNew
-        ? `${API_URL}/users`
-        : `${API_URL}/users/${selected._id}`;
+      const url = isNew ? '/users' : `/users/${selected._id}`;
 
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           email: selected.email,
           role: selected.role,
@@ -256,13 +236,10 @@ export default function UsersTable() {
   const handleConfirmDelete = async () => {
     if (!userToDelete) return;
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/users/${userToDelete._id}`, {
+      const response = await apiFetch(`/users/${userToDelete._id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error('No se pudo eliminar el usuario');
-      // La actualización se maneja por websocket
       setUsers((prev) => prev.filter((u) => u._id !== userToDelete._id));
       setToast({
         open: true,
@@ -279,6 +256,22 @@ export default function UsersTable() {
   const cancelDelete = () => {
     setDeleteDialogOpen(false);
     setUserToDelete(null);
+  };
+
+  const getRoleStyle = (role) => {
+    const isDark = theme.palette.mode === 'dark';
+    if (role === 'admin') {
+      return {
+        backgroundColor: isDark ? 'rgba(255, 111, 0, 0.2)' : '#fff8e1',
+        color: isDark ? '#ffb74d' : '#f57f17',
+        border: `1px solid ${isDark ? 'rgba(255, 111, 0, 0.5)' : '#ffecb3'}`,
+      };
+    }
+    return {
+      backgroundColor: isDark ? 'rgba(21, 101, 192, 0.2)' : '#e3f2fd',
+      color: isDark ? '#64b5f6' : '#1565c0',
+      border: `1px solid ${isDark ? 'rgba(21, 101, 192, 0.5)' : '#bbdefb'}`,
+    };
   };
 
   if (loading)
@@ -360,7 +353,7 @@ export default function UsersTable() {
               <InputAdornment position='start'>
                 <SearchIcon color='disabled' />
               </InputAdornment>
-            ),background.paper' },
+            ),
           }}
           sx={{ width: { xs: '100%', sm: 250 } }}
         />
@@ -372,15 +365,17 @@ export default function UsersTable() {
         component={Paper}
         sx={{
           borderRadius: 3,
-          boxShadow: theme.palette.mode === 'light' ? '0 16px 40px rgba(15,23,42,0.12)' : 'none',
+          boxShadow:
+            theme.palette.mode === 'light'
+              ? '0 16px 40px rgba(15,23,42,0.12)'
+              : 'none',
           overflowX: 'auto',
           backgroundImage: 'none',
         }}
       >
         <Table>
           <TableHead>
-            <TableRow sx={{ backgroundColor: 'action.hover
-            <TableRow sx={{ backgroundColor: '#f8fafc' }}>
+            <TableRow sx={{ backgroundColor: 'action.hover' }}>
               {[
                 { id: 'email', label: 'Email' },
                 { id: 'role', label: 'Rol' },
@@ -413,20 +408,9 @@ export default function UsersTable() {
                     style={{
                       padding: '4px 8px',
                       borderRadius: '4px',
-                          ? theme.palette.mode === 'dark' ? 'rgba(255, 111, 0, 0.2)' : '#fff8e1' 
-                          : theme.palette.mode === 'dark' ? 'rgba(21, 101, 192, 0.2)' : '#e3f2fd',
-                      color: user.role === 'admin' 
-                          ? theme.palette.mode === 'dark' ? '#ffb74d' : '#f57f17' 
-                          : theme.palette.mode === 'dark' ? '#64b5f6' : '#1565c0',
                       fontWeight: 'bold',
-                      border: `1px solid ${
-                        user.role === 'admin' 
-                          ? theme.palette.mode === 'dark' ? 'rgba(255, 111, 0, 0.5)' : '#ffecb3'
-                          : theme.palette.mode === 'dark' ? 'rgba(21, 101, 192, 0.5)
-                      border: `1px solid ${
-                        user.role === 'admin' ? '#ffecb3' : '#bbdefb'
-                      }`,
                       textTransform: 'capitalize',
+                      ...getRoleStyle(user.role),
                     }}
                   >
                     {user.role}
@@ -466,10 +450,9 @@ export default function UsersTable() {
         page={page}
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
-        labelRowsPerPage='Filas por página'
+        labelRowsPerPage='Filas por p\u00e1gina'
       />
 
-      {/* Dialogo de eliminación (Popup Centrado) */}
       <Dialog
         open={deleteDialogOpen}
         onClose={cancelDelete}
@@ -484,13 +467,14 @@ export default function UsersTable() {
         }}
       >
         <DialogTitle sx={{ textAlign: 'center', fontWeight: 'bold' }}>
-          ¿Estás seguro?
+          \u00bfEst\u00e1s seguro?
         </DialogTitle>
         <DialogContent>
           <Typography textAlign='center' color='text.secondary'>
-            ¿Quieres eliminar el usuario <strong>{userToDelete?.email}</strong>?
+            \u00bfQuieres eliminar el usuario{' '}
+            <strong>{userToDelete?.email}</strong>?
             <br />
-            Esta acción no se puede deshacer.
+            Esta acci\u00f3n no se puede deshacer.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center', pb: 2, gap: 1 }}>
@@ -548,8 +532,8 @@ export default function UsersTable() {
             <TextField
               label={
                 selected?._id
-                  ? 'Contraseña (dejar vacío para no cambiar)'
-                  : 'Contraseña'
+                  ? 'Contrase\u00f1a (dejar vac\u00edo para no cambiar)'
+                  : 'Contrase\u00f1a'
               }
               type='password'
               value={selected?.password || ''}

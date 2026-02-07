@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../redux/authSlice';
+import { useSelector } from 'react-redux';
 import useSocket from '../hooks/useSocket';
 import {
   Table,
@@ -10,7 +9,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  CircularProgress,
   Alert,
   Typography,
   Box,
@@ -29,43 +27,37 @@ import {
   useTheme,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-
-import { API_URL } from '../config';
-import { getUserIdFromToken } from '../utils/auth';
+import { apiFetch } from '../utils/apiClient';
 
 export default function AssetsTable() {
   const theme = useTheme();
-  const dispatch = useDispatch();
-  const { token, userRole } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
+  const userRole = user?.role;
+  const userId = user?.id;
   const [assets, setAssets] = useState([]);
-  const socket = useSocket(); // Agregado
+  const socket = useSocket();
 
-  // Estado para notificaciones
   const [toast, setToast] = useState({
     open: false,
     message: '',
-    severity: 'success', // 'success' | 'info' | 'warning' | 'error'
+    severity: 'success',
   });
 
-  const userId = useMemo(() => getUserIdFromToken(token), [token]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState(null);
 
-  // Estados para tabla (paginación, orden, búsqueda)
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [searchTerm, setSearchTerm] = useState('');
   const [orderBy, setOrderBy] = useState('name');
-  const [order, setOrder] = useState('asc'); // 'asc' or 'desc'
+  const [order, setOrder] = useState('asc');
 
-  // Estados para el diálogo de eliminación
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [assetToDelete, setAssetToDelete] = useState(null);
 
-  // Manejo de websockets
   useEffect(() => {
     if (!socket) return;
 
@@ -113,15 +105,7 @@ export default function AssetsTable() {
       async function fetchAssets() {
         setLoading(true);
         try {
-          const token = localStorage.getItem('token');
-          const response = await fetch(`${API_URL}/assets`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          if (response.status === 401 || response.status === 403) {
-            dispatch(logout());
-            throw new Error('Sesión expirada');
-          }
+          const response = await apiFetch('/assets');
 
           if (!response.ok) {
             throw new Error('Error obteniendo activos');
@@ -161,13 +145,8 @@ export default function AssetsTable() {
     if (!selected) return;
     setSaving(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/assets/${selected._id}`, {
+      const response = await apiFetch(`/assets/${selected._id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           name: selected.name,
           type: selected.type,
@@ -184,7 +163,6 @@ export default function AssetsTable() {
         prev.map((a) => (a._id === updatedAsset._id ? updatedAsset : a)),
       );
 
-      // Si el socket demora, mostramos feedback inmediato de todas formas
       setToast({
         open: true,
         message: `Activo actualizado: ${updatedAsset.name}`,
@@ -207,14 +185,11 @@ export default function AssetsTable() {
   const handleConfirmDelete = async () => {
     if (!assetToDelete) return;
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/assets/${assetToDelete._id}`, {
+      const response = await apiFetch(`/assets/${assetToDelete._id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error('No se pudo eliminar el activo');
 
-      // Actualizamos UI inmediatamente
       setAssets((prev) => prev.filter((a) => a._id !== assetToDelete._id));
       setToast({
         open: true,
@@ -262,7 +237,6 @@ export default function AssetsTable() {
       let valueA = a[orderBy] || '';
       let valueB = b[orderBy] || '';
 
-      // Extracción segura para ordenamiento
       if (orderBy === 'createdBy') {
         valueA =
           typeof a.createdBy === 'object'
@@ -341,12 +315,13 @@ export default function AssetsTable() {
     Number.isFinite(value) ? Number(value).toFixed(5) : '-';
 
   const formatCreator = (createdBy) => {
-    if (!createdBy) return '—';
+    if (!createdBy) return '\u2014';
     if (createdBy.email) return createdBy.email;
-    return `…${String(createdBy).slice(-6)}`;
+    return `\u2026${String(createdBy).slice(-6)}`;
   };
 
-  const geisDark = theme.palette.mode === 'dark';
+  const getTypeStyle = (type) => {
+    const isDark = theme.palette.mode === 'dark';
     const styles = {
       Pozo: {
         backgroundColor: isDark ? 'rgba(194, 24, 91, 0.2)' : '#fce4ec',
@@ -364,8 +339,7 @@ export default function AssetsTable() {
     return (
       styles[type] || {
         backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f5f5f5',
-        color: isDark ? '#e0e0e0' roundColor: '#f5f5f5',
-        color: '#616161',
+        color: isDark ? '#e0e0e0' : '#616161',
       }
     );
   };
@@ -391,7 +365,8 @@ export default function AssetsTable() {
             startAdornment: (
               <InputAdornment position='start'>
                 <SearchIcon color='disabled' />
-              </InputAdornment>background.paper' },
+              </InputAdornment>
+            ),
           }}
           sx={{ width: { xs: '100%', sm: 250 } }}
         />
@@ -400,16 +375,17 @@ export default function AssetsTable() {
         component={Paper}
         sx={{
           borderRadius: 3,
-          boxShadow: theme.palette.mode === 'light' ? '0 16px 40px rgba(15,23,42,0.12)' : 'none',
+          boxShadow:
+            theme.palette.mode === 'light'
+              ? '0 16px 40px rgba(15,23,42,0.12)'
+              : 'none',
           overflowX: 'auto',
           backgroundImage: 'none',
         }}
       >
         <Table>
           <TableHead>
-            <TableRow sx={{ backgroundColor: 'action.hover
-          <TableHead>
-            <TableRow sx={{ backgroundColor: '#f8fafc' }}>
+            <TableRow sx={{ backgroundColor: 'action.hover' }}>
               {[
                 { id: 'name', label: 'Nombre' },
                 { id: 'type', label: 'Tipo' },
@@ -516,10 +492,9 @@ export default function AssetsTable() {
         page={page}
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
-        labelRowsPerPage='Filas por página'
+        labelRowsPerPage='Filas por p\u00e1gina'
       />
 
-      {/* Dialogo de eliminación (Popup Centrado) */}
       <Dialog
         open={deleteDialogOpen}
         onClose={cancelDelete}
@@ -534,13 +509,14 @@ export default function AssetsTable() {
         }}
       >
         <DialogTitle sx={{ textAlign: 'center', fontWeight: 'bold' }}>
-          ¿Estás seguro?
+          \u00bfEst\u00e1s seguro?
         </DialogTitle>
         <DialogContent>
           <Typography textAlign='center' color='text.secondary'>
-            ¿Quieres eliminar el activo <strong>{assetToDelete?.name}</strong>?
+            \u00bfQuieres eliminar el activo{' '}
+            <strong>{assetToDelete?.name}</strong>?
             <br />
-            Esta acción no se puede deshacer.
+            Esta acci\u00f3n no se puede deshacer.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center', pb: 2, gap: 1 }}>
@@ -617,7 +593,7 @@ export default function AssetsTable() {
               fullWidth
               multiline
               rows={3}
-              placeholder='Añade comentarios sobre este activo...'
+              placeholder='A\u00f1ade comentarios sobre este activo...'
               InputProps={{ sx: { borderRadius: 2 } }}
             />
           </Stack>
