@@ -2,35 +2,43 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
+const mongoSanitize = require('express-mongo-sanitize');
 const path = require('path');
 const socketIo = require('socket.io');
+const jwt = require('jsonwebtoken');
 const authRoutes = require('./routes/auth');
 const assetRoutes = require('./routes/assets');
 const userRoutes = require('./routes/users');
 const assetControllerFactory = require('./controllers/assetController');
 const userControllerFactory = require('./controllers/userController');
+const { apiRateLimiter } = require('./middlewares/rateLimiter');
 
 dotenv.config();
 
 const app = express();
+
+// Security middleware
+app.use(helmet());
 app.use(
   cors({
-    origin: [
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-      'http://localhost:5174',
-      'http://127.0.0.1:5174',
-    ],
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',')
+      : ['http://localhost:5173'],
     credentials: true,
   }),
 );
-app.use(express.json());
+app.use(cookieParser());
+app.use(express.json({ limit: '16kb' }));
+app.use(mongoSanitize());
+app.use(apiRateLimiter);
 
 // Connect to MongoDB
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.log(err));
+  .catch((err) => console.error('MongoDB connection error:', err.message));
 
 // Routes
 app.use('/auth', authRoutes);
@@ -48,20 +56,34 @@ const server = app.listen(process.env.PORT || 5001, () => {
   console.log(`Server running on port ${process.env.PORT || 5001}`);
 });
 
+const corsOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',')
+  : ['http://localhost:5173'];
+
 const io = socketIo(server, {
   cors: {
-    origin:
-      process.env.NODE_ENV === 'production'
-        ? false // Disable CORS for same-origin in production
-        : [
-            'http://localhost:5173',
-            'http://127.0.0.1:5173',
-            'http://localhost:5174',
-            'http://127.0.0.1:5174',
-          ],
+    origin: process.env.NODE_ENV === 'production' ? false : corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   },
+});
+
+// Socket.io authentication middleware
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+
+  if (!token) {
+    return next(new Error('Autenticación requerida'));
+  }
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = payload.id;
+    socket.userRole = payload.role;
+    next();
+  } catch {
+    return next(new Error('Token inválido'));
+  }
 });
 
 const assetController = assetControllerFactory(io);
@@ -71,9 +93,15 @@ app.use('/assets', assetRoutes(assetController));
 app.use('/users', userRoutes(userController));
 
 io.on('connection', (socket) => {
-  console.log('New client connected');
+  // Join personal room
+  socket.join(`user:${socket.userId}`);
+
+  if (socket.userRole === 'admin') {
+    socket.join('admins');
+  }
+
   socket.on('disconnect', () => {
-    console.log('Client disconnected');
+    // Cleanup if needed
   });
 });
 
