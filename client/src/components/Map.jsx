@@ -80,30 +80,31 @@ export default function Map() {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const { user } = useSelector((state) => state.auth);
+  const themeMode = useSelector((state) => state.theme.mode);
   const [openModal, setOpenModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const selectedMarker = useRef(null);
-  const [selectMode, setSelectMode] = useState(true);
+  const [selectMode, setSelectMode] = useState(false);
   const selectModeRef = useRef(selectMode);
   const clickListenerRef = useRef(null);
   const [currentStyle, setCurrentStyle] = useState('streets');
   const [mapError, setMapError] = useState('');
+  const [mapLoaded, setMapLoaded] = useState(false);
   const [toast, setToast] = useState({
     open: false,
     message: '',
     severity: 'info',
-  });mapLoaded, setMapLoaded] = useState(false);
-  const [
+  });
   const socket = useSocket();
 
   const {
     data: assets,
     isLoading,
     mutate,
-  } = useSWR(user ? `${API_URL}/assets` : null, fetcher, {
+  } = useSWR(user ? '/assets' : null, fetcher, {
     revalidateOnFocus: false,
   });
-'/assets'
+
   useEffect(() => {
     if (!socket) return;
 
@@ -146,6 +147,14 @@ export default function Map() {
   }, [selectMode]);
 
   useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    // Trigger a repaint when theme changes
+    setTimeout(() => {
+      map.current?.resize();
+    }, 0);
+  }, [themeMode, mapLoaded]);
+
+  useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
     if (!mapboxgl.supported()) {
@@ -179,8 +188,8 @@ export default function Map() {
         }
       }, 4000);
 
-      masetMapLoaded(true);
-        p.current.on('load', () => {
+      map.current.on('load', () => {
+        setMapLoaded(true);
         map.current?.resize();
       });
 
@@ -193,7 +202,8 @@ export default function Map() {
         if (fallbackTimer) clearTimeout(fallbackTimer);
       });
 
-      map.current.on('error', () => {
+      map.current.on('error', (e) => {
+        console.error('Mapbox error:', e);
         setMapError(
           'No se pudo cargar el mapa (token o red). Aplicando mapa alterno.',
         );
@@ -212,9 +222,9 @@ export default function Map() {
       map.current = null;
     };
   }, []);
-Loaded || !map
+
   useEffect(() => {
-    if (!map.current || !assets) return;
+    if (!mapLoaded || !map.current || !assets) return;
 
     const sourceId = 'assets-source';
     const clusterLayerId = 'assets-clusters';
@@ -427,19 +437,23 @@ Loaded || !map
 
     const updateLayer = () => {
       if (!map.current) return;
-      addOrUpdateSource();
-      addLayers();
-      unregisterEvents();
-      registerEvents();
+      try {
+        addOrUpdateSource();
+        addLayers();
+        unregisterEvents();
+        registerEvents();
 
-      if (validAssets.length > 0) {
-        const bounds = new mapboxgl.LngLatBounds();
-        validAssets.forEach((asset) => {
-          bounds.extend([Number(asset.lng), Number(asset.lat)]);
-        });
-        map.current.fitBounds(bounds, { padding: 40, maxZoom: 15 });
-      } else {
-        map.current.flyTo({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM });
+        if (validAssets.length > 0) {
+          const bounds = new mapboxgl.LngLatBounds();
+          validAssets.forEach((asset) => {
+            bounds.extend([Number(asset.lng), Number(asset.lat)]);
+          });
+          map.current.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+        } else {
+          map.current.flyTo({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM });
+        }
+      } catch (err) {
+        console.warn('Error updating asset layers:', err);
       }
     };
 
@@ -450,9 +464,9 @@ Loaded || !map
     }
 
     return () => {
-      unregisterEvents();, mapLoaded
+      unregisterEvents();
     };
-  }, [assets, currentStyle]);
+  }, [assets, currentStyle, mapLoaded]);
 
   const removeSelectedPing = () => {
     try {
@@ -511,15 +525,24 @@ Loaded || !map
     createPingMarker(lng, lat);
     setSelectedLocation({ lng, lat });
     setOpenModal(true);
+    setSelectMode(false);
   };
 
   const handleAddAsset = () => {
+    setSelectMode(false);
     setOpenModal(true);
+  };
+
+  const handleSelectOnMap = () => {
+    setSelectMode(true);
+    setOpenModal(false);
+    removeSelectedPing();
   };
 
   const handleCloseModal = () => {
     setOpenModal(false);
     removeSelectedPing();
+    setSelectMode(false);
   };
 
   const theme = useTheme();
@@ -528,6 +551,7 @@ Loaded || !map
     mutate();
     setOpenModal(false);
     removeSelectedPing();
+    setSelectMode(false);
   };
 
   return (
@@ -542,6 +566,9 @@ Loaded || !map
           inset: 0,
           background: theme.palette.background.default,
           minHeight: '400px',
+          filter:
+            themeMode === 'dark' ? 'invert(0.93) hue-rotate(180deg)' : 'none',
+          transition: 'filter 0.5s ease-in-out',
         }}
         id='map-container'
       />
@@ -669,31 +696,12 @@ Loaded || !map
       >
         +
       </Button>
-      <Button
-        variant={selectMode ? 'contained' : 'outlined'}
-        color={selectMode ? 'success' : 'secondary'}
-        sx={{
-          position: 'absolute',
-          bottom: 100,
-          right: 20,
-          borderRadius: '8px',
-          minWidth: 140,
-        }}
-        onClick={() => {
-          setSelectMode((s) => {
-            const next = !s;
-            if (!next) removeSelectedPing();
-            return next;
-          });
-        }}
-      >
-        {selectMode ? 'Seleccionar: ON' : 'Seleccionar: OFF'}
-      </Button>
       <CreateAssetModal
         open={openModal}
         onClose={handleCloseModal}
         onAssetCreated={handleAssetCreated}
         initialCoords={selectedLocation}
+        onSelectOnMap={handleSelectOnMap}
       />
       <Snackbar
         open={toast.open}

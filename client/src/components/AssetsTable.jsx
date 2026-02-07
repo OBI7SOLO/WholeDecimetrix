@@ -315,7 +315,7 @@ export default function AssetsTable() {
     Number.isFinite(value) ? Number(value).toFixed(5) : '-';
 
   const formatCreator = (createdBy) => {
-    if (!createdBy) return '\u2014';
+    if (!createdBy) return 'Usuario eliminado';
     if (createdBy.email) return createdBy.email;
     return `\u2026${String(createdBy).slice(-6)}`;
   };

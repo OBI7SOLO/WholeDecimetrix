@@ -20,6 +20,7 @@ export default function CreateAssetModal({
   onClose,
   onAssetCreated,
   initialCoords,
+  onSelectOnMap,
 }) {
   const [formData, setFormData] = useState({
     name: '',
@@ -101,6 +102,10 @@ export default function CreateAssetModal({
     requestAnimationFrame(() => document.activeElement?.blur());
   };
 
+  const handleSelectOnMap = () => {
+    if (onSelectOnMap) onSelectOnMap();
+  };
+
   return (
     <Dialog
       open={open}
@@ -177,6 +182,14 @@ export default function CreateAssetModal({
             InputProps={{ sx: { borderRadius: 2 } }}
           />
         </Stack>
+        <Button
+          fullWidth
+          variant='outlined'
+          onClick={handleSelectOnMap}
+          sx={{ mt: 2, borderRadius: 2 }}
+        >
+          Seleccionar en mapa
+        </Button>
         <TextField
           fullWidth
           label='Comentarios'
