@@ -10,7 +10,11 @@ const loginRateLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req) => {
     const ip = req.ip.replace(/^::ffff:/, '');
-    return `${ip}-${req.body?.email?.toLowerCase() || 'unknown'}`;
+    const email =
+      typeof req.body?.email === 'string'
+        ? req.body.email.toLowerCase()
+        : 'unknown';
+    return `${ip}-${email}`;
   },
   validate: { keyGeneratorIpFallback: false },
 });
