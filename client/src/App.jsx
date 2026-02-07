@@ -4,21 +4,27 @@ import {
   Route,
   Navigate,
 } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import ProtectedRoute from './components/ProtectedRoute';
-import { Suspense, lazy, useMemo } from 'react';
+import { Suspense, lazy, useMemo, useEffect } from 'react';
 import { Box, CircularProgress } from '@mui/material';
 import { getTheme } from './theme';
+import { initializeAuth } from './redux/authSlice';
 
 const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 
 function App() {
   const mode = useSelector((state) => state.theme.mode);
+  const dispatch = useDispatch();
 
   const theme = useMemo(() => getTheme(mode), [mode]);
+
+  useEffect(() => {
+    dispatch(initializeAuth());
+  }, [dispatch]);
 
   return (
     <ThemeProvider theme={theme}>
