@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -21,7 +21,7 @@ import MyLocationIcon from '@mui/icons-material/MyLocation';
 import CreateAssetModal from './CreateAssetModal';
 import useSocket from '../hooks/useSocket';
 import { API_URL } from '../config';
-import { getAccessToken } from '../utils/apiClient';
+import { apiFetch } from '../utils/apiClient';
 
 const MAPBOX_TOKEN = (import.meta.env.VITE_MAPBOX_TOKEN || '').trim();
 
@@ -63,11 +63,7 @@ if (typeof window !== 'undefined') {
 }
 
 const fetcher = async (url) => {
-  const token = getAccessToken();
-  const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-    credentials: 'include',
-  });
+  const response = await apiFetch(url);
   if (!response.ok) throw new Error('Error fetching assets');
   return response.json();
 };
@@ -96,7 +92,8 @@ export default function Map() {
     open: false,
     message: '',
     severity: 'info',
-  });
+  });mapLoaded, setMapLoaded] = useState(false);
+  const [
   const socket = useSocket();
 
   const {
@@ -106,7 +103,7 @@ export default function Map() {
   } = useSWR(user ? `${API_URL}/assets` : null, fetcher, {
     revalidateOnFocus: false,
   });
-
+'/assets'
   useEffect(() => {
     if (!socket) return;
 
@@ -182,7 +179,8 @@ export default function Map() {
         }
       }, 4000);
 
-      map.current.on('load', () => {
+      masetMapLoaded(true);
+        p.current.on('load', () => {
         map.current?.resize();
       });
 
@@ -214,7 +212,7 @@ export default function Map() {
       map.current = null;
     };
   }, []);
-
+Loaded || !map
   useEffect(() => {
     if (!map.current || !assets) return;
 
@@ -452,7 +450,7 @@ export default function Map() {
     }
 
     return () => {
-      unregisterEvents();
+      unregisterEvents();, mapLoaded
     };
   }, [assets, currentStyle]);
 

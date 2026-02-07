@@ -31,20 +31,28 @@ export const logoutAsync = createAsyncThunk('auth/logout', async () => {
   clearAccessToken();
 });
 
+let pendingRefresh = null;
+
 export const initializeAuth = createAsyncThunk(
   'auth/initialize',
   async (_, { rejectWithValue }) => {
     try {
-      const res = await fetch(`${API_URL}/auth/refresh`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (!res.ok) return rejectWithValue('No session');
-      const data = await res.json();
-      setAccessToken(data.accessToken);
-      return data.user;
+      if (!pendingRefresh) {
+        pendingRefresh = fetch(`${API_URL}/auth/refresh`, {
+          method: 'POST',
+          credentials: 'include',
+        }).then(async (res) => {
+          if (!res.ok) throw new Error('No session');
+          const data = await res.json();
+          setAccessToken(data.accessToken);
+          return data.user;
+        });
+      }
+      return await pendingRefresh;
     } catch {
       return rejectWithValue('No session');
+    } finally {
+      pendingRefresh = null;
     }
   },
 );
