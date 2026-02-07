@@ -4,7 +4,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
-const mongoSanitize = require('express-mongo-sanitize');
+const sanitize = require('mongo-sanitize');
 const path = require('path');
 const socketIo = require('socket.io');
 const jwt = require('jsonwebtoken');
@@ -31,7 +31,11 @@ app.use(
 );
 app.use(cookieParser());
 app.use(express.json({ limit: '16kb' }));
-app.use(mongoSanitize());
+app.use((req, _res, next) => {
+  if (req.body) req.body = sanitize(req.body);
+  if (req.params) req.params = sanitize(req.params);
+  next();
+});
 app.use(apiRateLimiter);
 
 // Connect to MongoDB
