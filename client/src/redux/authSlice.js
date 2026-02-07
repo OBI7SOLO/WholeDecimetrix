@@ -1,39 +1,89 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { API_URL } from '../config';
+import { setAccessToken, clearAccessToken } from '../utils/apiClient';
 
-const initialState = {
-  token: localStorage.getItem('token') || null,
-  userRole: localStorage.getItem('userRole') || null,
-  loading: false,
-  error: null,
-};
+export const loginAsync = createAsyncThunk(
+  'auth/login',
+  async ({ email, password }, { rejectWithValue }) => {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return rejectWithValue(data.message || 'Error de autenticación');
+    }
+
+    const data = await res.json();
+    setAccessToken(data.accessToken);
+    return data.user;
+  },
+);
+
+export const logoutAsync = createAsyncThunk('auth/logout', async () => {
+  await fetch(`${API_URL}/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  }).catch(() => {});
+  clearAccessToken();
+});
+
+export const initializeAuth = createAsyncThunk(
+  'auth/initialize',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) return rejectWithValue('No session');
+      const data = await res.json();
+      setAccessToken(data.accessToken);
+      return data.user;
+    } catch {
+      return rejectWithValue('No session');
+    }
+  },
+);
 
 const authSlice = createSlice({
   name: 'auth',
-  initialState,
-  reducers: {
-    loginStart: (state) => {
-      state.loading = true;
-      state.error = null;
-    },
-    loginSuccess: (state, action) => {
-      state.loading = false;
-      state.token = action.payload.token;
-      state.userRole = action.payload.userRole;
-      localStorage.setItem('token', action.payload.token);
-      localStorage.setItem('userRole', action.payload.userRole);
-    },
-    loginFailure: (state, action) => {
-      state.loading = false;
-      state.error = action.payload;
-    },
-    logout: (state) => {
-      state.token = null;
-      state.userRole = null;
-      localStorage.removeItem('token');
-      localStorage.removeItem('userRole');
-    },
+  initialState: {
+    user: null,
+    loading: false,
+    initializing: true,
+    error: null,
+  },
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(loginAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(loginAsync.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+      })
+      .addCase(loginAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(logoutAsync.fulfilled, (state) => {
+        state.user = null;
+      })
+      .addCase(initializeAuth.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.initializing = false;
+      })
+      .addCase(initializeAuth.rejected, (state) => {
+        state.user = null;
+        state.initializing = false;
+      });
   },
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout } = authSlice.actions;
 export default authSlice.reducer;
