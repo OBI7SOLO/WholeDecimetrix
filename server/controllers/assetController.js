@@ -15,8 +15,8 @@ module.exports = (io) => {
         .populate('createdBy', 'email role')
         .lean();
       res.json(assets);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
+    } catch {
+      res.status(500).json({ message: 'Error obteniendo activos' });
     }
   };
 
@@ -25,10 +25,12 @@ module.exports = (io) => {
       const asset = new Asset({ ...req.body, createdBy: req.user.id });
       await asset.save();
       const populated = await asset.populate('createdBy', 'email role');
-      io.emit('new-asset', populated);
+      // Notify admins and the creator
+      io.to('admins').emit('new-asset', populated);
+      io.to(`user:${req.user.id}`).emit('new-asset', populated);
       res.status(201).json(populated);
-    } catch (err) {
-      res.status(400).json({ error: err.message });
+    } catch {
+      res.status(400).json({ message: 'Error al crear activo' });
     }
   };
 
@@ -42,10 +44,14 @@ module.exports = (io) => {
       await asset.save();
 
       const populated = await asset.populate('createdBy', 'email role');
-      io.emit('asset-updated', populated);
+      io.to('admins').emit('asset-updated', populated);
+      io.to(`user:${String(asset.createdBy._id || asset.createdBy)}`).emit(
+        'asset-updated',
+        populated,
+      );
       res.json(populated);
-    } catch (err) {
-      res.status(400).send(err.message);
+    } catch {
+      res.status(400).json({ message: 'Error al actualizar activo' });
     }
   };
 
@@ -55,11 +61,13 @@ module.exports = (io) => {
       const error = ensureAccess(asset, req.user);
       if (error) return res.sendStatus(error);
 
+      const creatorId = String(asset.createdBy);
       await asset.deleteOne();
-      io.emit('asset-deleted', { id: req.params.id });
+      io.to('admins').emit('asset-deleted', { id: req.params.id });
+      io.to(`user:${creatorId}`).emit('asset-deleted', { id: req.params.id });
       res.sendStatus(204);
-    } catch (err) {
-      res.status(500).send(err.message);
+    } catch {
+      res.status(500).json({ message: 'Error al eliminar activo' });
     }
   };
 
