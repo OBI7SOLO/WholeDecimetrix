@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticateJWT, requireAdmin } = require('../middlewares/auth');
+const { authenticateJWT, authorize } = require('../middlewares/auth');
 const {
   validateBody,
   userCreateSchema,
@@ -12,19 +12,24 @@ module.exports = (controllers) => {
   router.post(
     '/',
     authenticateJWT,
-    requireAdmin,
+    authorize('admin'),
     validateBody(userCreateSchema),
     controllers.createUser,
   );
-  router.get('/', authenticateJWT, requireAdmin, controllers.getUsers);
+  router.get('/', authenticateJWT, authorize('admin'), controllers.getUsers);
   router.put(
     '/:id',
     authenticateJWT,
-    requireAdmin,
+    authorize('admin'),
     validateBody(userUpdateSchema),
     controllers.updateUser,
   );
-  router.delete('/:id', authenticateJWT, requireAdmin, controllers.deleteUser);
+  router.delete(
+    '/:id',
+    authenticateJWT,
+    authorize('admin'),
+    controllers.deleteUser,
+  );
 
   return router;
 };
