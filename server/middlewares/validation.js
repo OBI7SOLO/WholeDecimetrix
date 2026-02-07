@@ -35,7 +35,7 @@ const userUpdateSchema = userCreateSchema
   );
 
 const formatZodErrors = (error) =>
-  error.errors.map(({ path, message }) => ({
+  error.issues.map(({ path, message }) => ({
     field: path.join('.') || 'body',
     message,
   }));

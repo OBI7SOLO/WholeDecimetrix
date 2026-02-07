@@ -1,22 +1,54 @@
 const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
-const authenticateJWT = (req, res, next) => {
-  const token = req.header('Authorization')?.split(' ')[1];
-  if (!token) return res.sendStatus(401);
+const authenticateJWT = async (req, res, next) => {
+  const authHeader = req.header('Authorization');
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      console.error('JWT Verification Error:', err.message);
-      return res.sendStatus(403);
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Token requerido' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(payload.id)
+      .select('role tokenVersion')
+      .lean();
+
+    if (!user || user.tokenVersion !== payload.tokenVersion) {
+      return res.status(401).json({ message: 'Token invalidado' });
     }
-    req.user = user;
+
+    req.user = {
+      id: payload.id,
+      role: user.role,
+    };
+
     next();
-  });
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res
+        .status(401)
+        .json({ message: 'Token expirado', code: 'TOKEN_EXPIRED' });
+    }
+    return res.status(401).json({ message: 'Token inválido' });
+  }
 };
 
-const requireAdmin = (req, res, next) => {
-  if (req.user?.role !== 'admin') return res.sendStatus(403);
-  next();
+const authorize = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'No autenticado' });
+    }
+    if (!allowedRoles.includes(req.user.role)) {
+      return res
+        .status(403)
+        .json({ message: 'No tienes permisos para esta acción' });
+    }
+    next();
+  };
 };
 
-module.exports = { authenticateJWT, requireAdmin };
+module.exports = { authenticateJWT, authorize };
