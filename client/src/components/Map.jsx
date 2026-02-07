@@ -471,7 +471,7 @@ export default function Map() {
   const handleStyleChange = (event, newStyle) => {
     if (newStyle !== null && newStyle !== currentStyle && map.current) {
       setCurrentStyle(newStyle);
-      map.current.setStyle(MAP_STYLES[newStyle]);
+      map.current.setStyle(MAP_STYLES[newStyle], { diff: false });
     }
   };
 
