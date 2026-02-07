@@ -27,11 +27,12 @@ const generateRefreshToken = (user) =>
   );
 
 const setRefreshCookie = (res, token) => {
+  const isProduction = process.env.NODE_ENV === 'production';
   res.cookie('refreshToken', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/auth',
+    secure: isProduction,
+    sameSite: isProduction ? 'strict' : 'lax',
+    path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 };
@@ -122,7 +123,7 @@ const refresh = async (req, res) => {
       user.refreshTokens = [];
       user.tokenVersion += 1;
       await user.save();
-      res.clearCookie('refreshToken', { path: '/auth' });
+      res.clearCookie('refreshToken', { path: '/' });
       return res.status(401).json({
         message:
           'Reuso de refresh token detectado. Todas las sesiones invalidadas.',
@@ -145,7 +146,7 @@ const refresh = async (req, res) => {
       user: { id: user._id, email: user.email, role: user.role },
     });
   } catch {
-    res.clearCookie('refreshToken', { path: '/auth' });
+    res.clearCookie('refreshToken', { path: '/' });
     return res.status(401).json({ message: 'Token inválido o expirado' });
   }
 };
@@ -170,7 +171,7 @@ const logoutHandler = async (req, res) => {
     }
   }
 
-  res.clearCookie('refreshToken', { path: '/auth' });
+  res.clearCookie('refreshToken', { path: '/' });
   res.json({ message: 'Logout exitoso' });
 };
 
