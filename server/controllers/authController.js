@@ -39,6 +39,10 @@ const setRefreshCookie = (res, token) => {
 const login = async (req, res) => {
   const { email, password } = req.body;
 
+  if (typeof email !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({ message: 'Campos inválidos' });
+  }
+
   try {
     const user = await User.findOne({ email: email.toLowerCase().trim() });
 
