@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../redux/authSlice';
+import { logoutAsync } from '../redux/authSlice';
 import { toggleTheme } from '../redux/themeSlice';
 import {
   Box,
@@ -22,14 +22,16 @@ import UsersTable from '../components/UsersTable';
 import AssetsTable from '../components/AssetsTable';
 
 export default function Dashboard() {
-  const { userRole } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
   const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
 
-  const handleLogout = () => {
-    dispatch(logout());
+  const userRole = user?.role;
+
+  const handleLogout = async () => {
+    await dispatch(logoutAsync());
     navigate('/login');
   };
 
@@ -186,8 +188,8 @@ export default function Dashboard() {
         sx={{
           flex: 1,
           position: 'relative',
-          overflow: 'hidden', // Map handles its own scroll/drag
-          display: 'flex', // Ensure children fill height if needed
+          overflow: 'hidden',
+          display: 'flex',
           flexDirection: 'column',
           p: tabValue !== 0 ? { xs: 2, md: 3 } : 0,
         }}

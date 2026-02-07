@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { loginSuccess, loginFailure } from '../redux/authSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { loginAsync } from '../redux/authSlice';
 import {
   Box,
   TextField,
@@ -11,42 +11,28 @@ import {
   Alert,
   InputAdornment,
   IconButton,
+  CircularProgress,
 } from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import { API_URL } from '../config';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { user, loading, error } = useSelector((state) => state.auth);
+
+  if (user) {
+    return <Navigate to='/dashboard' replace />;
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
-
-    try {
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Email o contraseña inválidos');
-      }
-
-      const data = await response.json();
-      // const decoded = JSON.parse(atob(data.token.split('.')[1]));
-
-      dispatch(loginSuccess({ token: data.token, userRole: data.role }));
+    const result = await dispatch(loginAsync({ email, password }));
+    if (loginAsync.fulfilled.match(result)) {
       navigate('/dashboard');
-    } catch (err) {
-      setError(err.message);
-      dispatch(loginFailure(err.message));
     }
   };
 
@@ -85,7 +71,7 @@ export default function Login() {
             variant='body2'
             sx={{ mb: 3, textAlign: 'center', color: 'text.secondary' }}
           >
-            Sistema de Gestión de Activos
+            Sistema de Gestion de Activos
           </Typography>
           {error && (
             <Alert severity='error' sx={{ mb: 2 }}>
@@ -101,16 +87,18 @@ export default function Login() {
               onChange={(e) => setEmail(e.target.value)}
               margin='normal'
               required
+              disabled={loading}
               sx={{ mb: 2 }}
             />
             <TextField
               fullWidth
-              label='Contraseña'
+              label='Contrasena'
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               margin='normal'
               required
+              disabled={loading}
               sx={{ mb: 3 }}
               InputProps={{
                 endAdornment: (
@@ -131,6 +119,7 @@ export default function Login() {
               variant='contained'
               type='submit'
               size='large'
+              disabled={loading}
               sx={{
                 py: 1.5,
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -141,29 +130,12 @@ export default function Login() {
                 },
               }}
             >
-              Iniciar Sesión
+              {loading ? (
+                <CircularProgress size={24} color='inherit' />
+              ) : (
+                'Iniciar Sesion'
+              )}
             </Button>
-          </Box>
-          <Box
-            sx={{
-              mt: 3,
-              p: 2,
-              backgroundColor: '#f5f5f5',
-              borderRadius: 2,
-            }}
-          >
-            <Typography
-              variant='caption'
-              sx={{ display: 'block', mb: 1, fontWeight: 600 }}
-            >
-              Credenciales de prueba:
-            </Typography>
-            <Typography variant='caption' sx={{ display: 'block', mb: 0.5 }}>
-              👨‍💼 Admin: admin@example.com / admin123
-            </Typography>
-            <Typography variant='caption' sx={{ display: 'block' }}>
-              👷 Operario: operator@example.com / operator123
-            </Typography>
           </Box>
         </Box>
       </Container>
