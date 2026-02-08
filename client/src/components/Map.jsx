@@ -618,7 +618,7 @@ export default function Map() {
       console.log('style.load event fired, calling performUpdateLayer');
       performUpdateLayer();
     };
-    
+
     if (map.current) {
       map.current.on('style.load', styleLoadHandlerRef.current);
     }
