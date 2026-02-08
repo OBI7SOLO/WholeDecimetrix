@@ -14,10 +14,10 @@ import {
   useTheme,
   CircularProgress,
 } from '@mui/material';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import EngineeringIcon from '@mui/icons-material/Engineering';
 import PersonIcon from '@mui/icons-material/Person';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
 import Map from '../components/Map';
 import UsersTable from '../components/UsersTable';
 import AssetsTable from '../components/AssetsTable';
@@ -139,36 +139,36 @@ export default function Dashboard() {
           }}
         >
           <IconButton
-            sx={{ ml: 1 }}
+            sx={{ ml: 1, borderRadius: '50%' }}
             onClick={() => dispatch(toggleTheme())}
             color='inherit'
           >
             {theme.palette.mode === 'dark' ? (
-              <Brightness7Icon />
+              <LightModeIcon />
             ) : (
-              <Brightness4Icon />
+              <DarkModeIcon />
             )}
           </IconButton>
           <Avatar
             sx={{
-              bgcolor: userRole === 'admin' ? '#f57f17' : '#1565c0',
+              bgcolor: userRole === 'admin' ? '#d4a017' : '#1565c0',
               width: 40,
               height: 40,
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
             }}
           >
-            {userRole === 'admin' ? <AdminPanelSettingsIcon /> : <PersonIcon />}
+            {userRole === 'admin' ? <EngineeringIcon /> : <PersonIcon />}
           </Avatar>
           <Box
             sx={{
               px: 2,
               py: 0.5,
-              borderRadius: 2,
-              backgroundColor: userRole === 'admin' ? '#fff8e1' : '#e3f2fd',
-              color: userRole === 'admin' ? '#f57f17' : '#1565c0',
+              borderRadius: 1.5,
+              backgroundColor: userRole === 'admin' ? '#fef3c7' : '#e3f2fd',
+              color: userRole === 'admin' ? '#d4a017' : '#1565c0',
               fontWeight: 600,
               border: '1px solid',
-              borderColor: userRole === 'admin' ? '#ffecb3' : '#bbdefb',
+              borderColor: userRole === 'admin' ? '#fde68a' : '#bbdefb',
               textTransform: 'capitalize',
             }}
           >
@@ -178,7 +178,10 @@ export default function Dashboard() {
             variant='contained'
             color='error'
             onClick={handleLogout}
-            sx={{ boxShadow: '0 10px 24px rgba(239,68,68,0.35)' }}
+            sx={{
+              boxShadow: '0 10px 24px rgba(239,68,68,0.35)',
+              borderRadius: 1.5,
+            }}
           >
             Logout
           </Button>
