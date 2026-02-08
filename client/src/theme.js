@@ -1,3 +1,4 @@
+// MUI theme factory for light and dark modes.
 import { createTheme } from '@mui/material/styles';
 
 export const getTheme = (mode) =>

@@ -1,3 +1,4 @@
+// Client router and top-level routes.
 import {
   BrowserRouter as Router,
   Routes,
