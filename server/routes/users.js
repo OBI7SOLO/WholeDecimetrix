@@ -1,3 +1,4 @@
+// User routes restricted to admin role.
 const express = require('express');
 const { authenticateJWT, authorize } = require('../middlewares/auth');
 const {

@@ -1,3 +1,4 @@
+// Auth routes with rate limiting.
 const express = require('express');
 const router = express.Router();
 const { login, refresh, logout } = require('../controllers/authController');

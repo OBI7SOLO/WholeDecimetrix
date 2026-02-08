@@ -1,3 +1,4 @@
+// Asset routes with validation and auth.
 const express = require('express');
 const { authenticateJWT } = require('../middlewares/auth');
 const {
