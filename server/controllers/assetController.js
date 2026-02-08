@@ -1,3 +1,4 @@
+// Asset controller: CRUD and role-based access.
 const Asset = require('../models/Asset');
 
 module.exports = (io) => {

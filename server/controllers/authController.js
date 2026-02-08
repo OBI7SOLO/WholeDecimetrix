@@ -1,3 +1,4 @@
+// Auth controller: login, refresh, logout, and token helpers.
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
