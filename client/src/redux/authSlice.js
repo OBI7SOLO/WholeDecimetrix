@@ -1,3 +1,4 @@
+// Redux slice for auth state and async login/logout.
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { API_URL } from '../config';
 import { setAccessToken, clearAccessToken } from '../utils/apiClient';

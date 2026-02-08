@@ -1,3 +1,4 @@
+// Central Redux store configuration.
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './authSlice';
 import themeReducer from './themeSlice';

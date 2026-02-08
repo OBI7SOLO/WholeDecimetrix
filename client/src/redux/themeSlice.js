@@ -1,3 +1,4 @@
+// Redux slice for theme preferences.
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
