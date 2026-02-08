@@ -1,3 +1,4 @@
+// Seed script for demo users and assets.
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
