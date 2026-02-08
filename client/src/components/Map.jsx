@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -90,6 +90,26 @@ const isValidLngLat = (lng, lat) =>
   lng >= -180 &&
   lng <= 180;
 
+// Custom popup styles
+const initializePopupStyles = () => {
+  if (document.getElementById('mapbox-popup-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'mapbox-popup-styles';
+  style.innerHTML = `
+    .mapboxgl-popup-content {
+      background: transparent !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      border-radius: 0 !important;
+    }
+    .mapboxgl-popup-tip {
+      border-top-color: transparent !important;
+      border-bottom-color: transparent !important;
+    }
+  `;
+  document.head.appendChild(style);
+};
+
 export default function Map() {
   const mapContainer = useRef(null);
   const map = useRef(null);
@@ -105,6 +125,8 @@ export default function Map() {
   const [mapError, setMapError] = useState('');
   const [mapLoaded, setMapLoaded] = useState(false);
   const [styleVersion, setStyleVersion] = useState(0);
+  const hoverPopup = useRef(null);
+  const assetLayersRegistered = useRef(false);
   const [toast, setToast] = useState({
     open: false,
     message: '',
@@ -171,6 +193,8 @@ export default function Map() {
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
+
+    initializePopupStyles();
 
     if (!mapboxgl.supported()) {
       setMapError('Tu navegador no soporta WebGL requerido por Mapbox.');
@@ -284,18 +308,25 @@ export default function Map() {
         coordinates[0] += lngLat.lng > coordinates[0] ? 360 : -360;
       }
 
+      const bgColor =
+        themeMode === 'dark' ? 'rgba(15, 23, 42, 0.95)' : '#ffffff';
+      const nameColor = '#1976d2';
+      const typeColor = '#ffffff';
+      const labelColor = themeMode === 'dark' ? '#b0b0b0' : '#666';
+      const valueColor = themeMode === 'dark' ? '#e0e0e0' : '#333';
+
       const popupHTML = `
-        <div style="min-width: 200px; padding: 4px;">
-          <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold; color: #333;">
+        <div style="min-width: 220px; padding: 12px; background-color: ${bgColor}; border-radius: 6px; backdrop-filter: blur(8px);">
+          <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold; color: ${nameColor};">
             ${name}
           </h3>
-          <div style="font-size: 13px; line-height: 1.6;">
-            <p style="margin: 4px 0;"><strong>Tipo:</strong> ${type}</p>
-            <p style="margin: 4px 0;"><strong>Latitud:</strong> ${Number(lat).toFixed(5)}</p>
-            <p style="margin: 4px 0;"><strong>Longitud:</strong> ${Number(lng).toFixed(5)}</p>
-            <p style="margin: 4px 0;"><strong>Creado por:</strong> ${creatorEmail}</p>
-            <p style="margin: 4px 0;"><strong>Fecha:</strong> ${formattedDate}</p>
-            <p style="margin: 4px 0;"><strong>Comentarios:</strong> ${comments}</p>
+          <div style="font-size: 13px; line-height: 1.7;">
+            <p style="margin: 4px 0;"><span style="color: ${labelColor};"><strong>Tipo:</strong></span> <span style="color: ${typeColor};">${type}</span></p>
+            <p style="margin: 4px 0;"><span style="color: ${labelColor};"><strong>Latitud:</strong></span> <span style="color: ${valueColor};">${Number(lat).toFixed(5)}</span></p>
+            <p style="margin: 4px 0;"><span style="color: ${labelColor};"><strong>Longitud:</strong></span> <span style="color: ${valueColor};">${Number(lng).toFixed(5)}</span></p>
+            <p style="margin: 4px 0;"><span style="color: ${labelColor};"><strong>Creado por:</strong></span> <span style="color: ${valueColor};">${creatorEmail}</span></p>
+            <p style="margin: 4px 0;"><span style="color: ${labelColor};"><strong>Fecha:</strong></span> <span style="color: ${valueColor};">${formattedDate}</span></p>
+            <p style="margin: 4px 0;"><span style="color: ${labelColor};"><strong>Comentarios:</strong></span> <span style="color: ${valueColor};">${comments}</span></p>
           </div>
         </div>
       `;
@@ -332,12 +363,45 @@ export default function Map() {
       buildPopup(event.features[0], event.lngLat);
     };
 
-    const handleMouseEnter = () => {
+    const handleMouseEnter = (event) => {
       if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      if (!event.features || !event.features[0]) return;
+
+      const feature = event.features[0];
+      const { name, type } = feature.properties || {};
+
+      if (hoverPopup.current) {
+        hoverPopup.current.remove();
+      }
+
+      const bgColor =
+        themeMode === 'dark' ? 'rgba(15, 23, 42, 0.95)' : '#ffffff';
+      const nameColor = '#1976d2';
+      const typeColor = '#ffffff';
+
+      const hoverHTML = `
+        <div style="padding: 10px; font-size: 12px; background-color: ${bgColor}; border-radius: 6px; backdrop-filter: blur(8px); min-width: 140px;">
+          <strong style="color: ${nameColor};">${name || 'Sin nombre'}</strong><br/>
+          <span style="font-size: 11px; color: ${typeColor};">${type || 'N/A'}</span>
+        </div>
+      `;
+
+      hoverPopup.current = new mapboxgl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        offset: [0, -10],
+      })
+        .setLngLat(event.lngLat)
+        .setHTML(hoverHTML)
+        .addTo(map.current);
     };
 
     const handleMouseLeave = () => {
       if (map.current) map.current.getCanvas().style.cursor = '';
+      if (hoverPopup.current) {
+        hoverPopup.current.remove();
+        hoverPopup.current = null;
+      }
     };
 
     const addOrUpdateSource = () => {
@@ -455,8 +519,12 @@ export default function Map() {
       try {
         addOrUpdateSource();
         addLayers();
-        unregisterEvents();
-        registerEvents();
+
+        // Register events only once
+        if (!assetLayersRegistered.current) {
+          registerEvents();
+          assetLayersRegistered.current = true;
+        }
 
         if (validAssets.length > 0) {
           const bounds = new mapboxgl.LngLatBounds();
@@ -475,12 +543,17 @@ export default function Map() {
     if (map.current.isStyleLoaded()) {
       updateLayer();
     } else {
-      map.current.once('style.load', updateLayer);
+      const onStyleLoad = () => {
+        assetLayersRegistered.current = false; // Reset when style changes
+        updateLayer();
+      };
+      map.current.once('style.load', onStyleLoad);
+      return () => {
+        if (map.current) {
+          map.current.off('style.load', onStyleLoad);
+        }
+      };
     }
-
-    return () => {
-      unregisterEvents();
-    };
   }, [assets, mapLoaded, styleVersion]);
 
   const removeSelectedPing = () => {
