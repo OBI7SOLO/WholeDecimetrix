@@ -95,7 +95,7 @@ export default function Dashboard() {
             textAlign: { xs: 'center', md: 'left' },
           }}
         >
-          Decimetrix - Mapeo de Activos
+          Mapeo de Activos
         </Typography>
 
         <Tabs
