@@ -2,54 +2,53 @@
 
 Frontend de la aplicación Decimetrix, construido con React y Vite.
 
-## Tecnologías Principales
+## Tecnologías principales
 
-- **React 19**: Biblioteca de UI.
-- **Vite**: Build tool y servidor de desarrollo.
-- **Material UI (MUI)**: Componentes de interfaz y diseño.
-- **Mapbox GL JS**: Mapas interactivos con soporte WebGL.
-- **Redux Toolkit**: Gestión del estado global (Autenticación).
-- **Socket.IO Client**: Conexión en tiempo real con el servidor.
+- React 19
+- Vite
+- Material UI (MUI)
+- Mapbox GL JS
+- Redux Toolkit
+- Socket.IO Client
 
-## Requisitos Previos
+## Requisitos previos
 
-- Tener el servidor backend ejecutándose.
+- Backend ejecutándose en `http://localhost:5001` (o el puerto configurado).
 
 ## Instalación
 
-1. Navega al directorio del cliente:
-
-   ```bash
-   cd client
-   ```
-
-2. Instala las dependencias:
-   ```bash
-   npm install
-   ```
-   _Nota: Si encuentras problemas con caché, puedes limpiar e instalar de nuevo._
+```bash
+cd client
+npm install
+```
 
 ## Configuración
 
-Asegúrate de tener las variables de entorno configuradas si es necesario (ej. `VITE_API_URL`, `VITE_MAPBOX_TOKEN`).
+Crear el archivo `client/.env`:
+
+```env
+VITE_API_URL=http://localhost:5001
+VITE_MAPBOX_TOKEN=tu_token_mapbox
+```
 
 ## Ejecución
-
-Para iniciar la aplicación en modo desarrollo:
 
 ```bash
 npm run dev
 ```
 
-Abre tu navegador en `http://localhost:5173`.
+Abrir `http://localhost:5173`.
 
-## Características Frontend
+## Scripts
 
-- **Dashboard Interactivo**: Panel principal con vista de mapa y tablas.
-- **Autenticación**: Login con manejo de roles (Admin/User) y avatares personalizados.
-- **Mapas Avanzados**:
-  - Visualización de marcadores de activos.
-  - Geolocalización de activos.
-  - **Selector de Estilos**: Alternar entre vista Mapa, Satélite y Terreno.
-- **Gestión de Activos**: Interfaz modal para crear nuevos activos en el mapa.
-- **Tiempo Real**: Notificaciones "Toast" al crearse nuevos activos por otros usuarios.
+- `npm run dev`: inicia el servidor de desarrollo.
+- `npm run build`: compila para producción.
+- `npm run preview`: sirve el build local.
+
+## Características frontend
+
+- Dashboard con mapa y tablas.
+- Autenticación con roles (admin/operario).
+- Cambio de estilos de mapa (Mapa, Satélite, Terreno).
+- Gestión de activos con modal de creación.
+- Actualizaciones en tiempo real vía WebSockets.
