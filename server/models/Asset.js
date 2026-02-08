@@ -1,3 +1,4 @@
+// Asset schema with geo and metadata fields.
 const mongoose = require('mongoose');
 
 const assetSchema = new mongoose.Schema(

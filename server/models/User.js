@@ -1,3 +1,4 @@
+// User schema with role and credential fields.
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema(
