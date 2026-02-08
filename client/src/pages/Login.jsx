@@ -1,3 +1,4 @@
+// Login page with role-aware authentication flow.
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Navigate } from 'react-router-dom';

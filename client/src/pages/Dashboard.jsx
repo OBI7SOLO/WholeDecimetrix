@@ -1,3 +1,4 @@
+// Main dashboard layout and tab navigation.
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';

@@ -1,3 +1,4 @@
+// Shared style tokens for the dashboard layout.
 export const styles = {
   container: {
     display: 'flex',
