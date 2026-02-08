@@ -26,9 +26,23 @@ import { apiFetch } from '../utils/apiClient';
 const MAPBOX_TOKEN = (import.meta.env.VITE_MAPBOX_TOKEN || '').trim();
 
 const MAP_STYLES = {
-  streets: 'mapbox://styles/mapbox/streets-v12',
-  satellite: 'mapbox://styles/mapbox/satellite-streets-v12',
-  outdoors: 'mapbox://styles/mapbox/outdoors-v12',
+  streets: {
+    light: 'mapbox://styles/mapbox/light-v11',
+    dark: 'mapbox://styles/mapbox/dark-v11',
+  },
+  satellite: {
+    light: 'mapbox://styles/mapbox/satellite-streets-v12',
+    dark: 'mapbox://styles/mapbox/satellite-v9',
+  },
+  outdoors: {
+    light: 'mapbox://styles/mapbox/outdoors-v12',
+    dark: 'mapbox://styles/mapbox/dark-v11',
+  },
+};
+
+const getMapStyle = (styleType, themeMode) => {
+  const styles = MAP_STYLES[styleType];
+  return styles[themeMode] || styles.light;
 };
 
 const DEFAULT_CENTER = [-73.68326960304543, 3.8930383166793945];
@@ -90,6 +104,7 @@ export default function Map() {
   const [currentStyle, setCurrentStyle] = useState('streets');
   const [mapError, setMapError] = useState('');
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [styleVersion, setStyleVersion] = useState(0);
   const [toast, setToast] = useState({
     open: false,
     message: '',
@@ -165,7 +180,7 @@ export default function Map() {
     try {
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: MAP_STYLES[currentStyle],
+        style: getMapStyle(currentStyle, themeMode),
         center: DEFAULT_CENTER,
         zoom: DEFAULT_ZOOM,
       });
@@ -466,7 +481,7 @@ export default function Map() {
     return () => {
       unregisterEvents();
     };
-  }, [assets, currentStyle, mapLoaded]);
+  }, [assets, mapLoaded, styleVersion]);
 
   const removeSelectedPing = () => {
     try {
@@ -483,9 +498,22 @@ export default function Map() {
   const handleStyleChange = (event, newStyle) => {
     if (newStyle !== null && newStyle !== currentStyle && map.current) {
       setCurrentStyle(newStyle);
-      map.current.setStyle(MAP_STYLES[newStyle], { diff: false });
     }
   };
+
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    const newStyle = getMapStyle(currentStyle, themeMode);
+    const currentMapStyleUrl = map.current.getStyle().url;
+    if (currentMapStyleUrl !== newStyle) {
+      // Wait for style to fully load and redraw assets
+      const styleLoadHandler = () => {
+        setStyleVersion((prev) => prev + 1);
+      };
+      map.current.once('style.load', styleLoadHandler);
+      map.current.setStyle(newStyle, { diff: false });
+    }
+  }, [themeMode, mapLoaded, currentStyle]);
 
   const ensurePingStyles = () => {
     if (document.getElementById('map-ping-styles')) return;
@@ -566,9 +594,6 @@ export default function Map() {
           inset: 0,
           background: theme.palette.background.default,
           minHeight: '400px',
-          filter:
-            themeMode === 'dark' ? 'invert(0.93) hue-rotate(180deg)' : 'none',
-          transition: 'filter 0.5s ease-in-out',
         }}
         id='map-container'
       />
@@ -621,10 +646,10 @@ export default function Map() {
               Mapa
             </Box>
           </ToggleButton>
-          <ToggleButton value='satellite' aria-label='Sat\u00e9lite'>
+          <ToggleButton value='satellite' aria-label='Satélite'>
             <SatelliteAltIcon sx={{ mr: { xs: 0, sm: 1 }, fontSize: 20 }} />
             <Box component='span' sx={{ display: { xs: 'none', sm: 'block' } }}>
-              Sat\u00e9lite
+              Satélite
             </Box>
           </ToggleButton>
           <ToggleButton value='outdoors' aria-label='Terreno'>
