@@ -127,6 +127,7 @@ export default function Map() {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [styleVersion, setStyleVersion] = useState(0);
   const hoverPopup = useRef(null);
+  const themeModeRef = useRef(themeMode);
   const assetLayersRegistered = useRef(false);
   const fallbackTimerRef = useRef(null);
   const fallbackAppliedRef = useRef(false);
@@ -187,6 +188,10 @@ export default function Map() {
   useEffect(() => {
     selectModeRef.current = selectMode;
   }, [selectMode]);
+
+  useEffect(() => {
+    themeModeRef.current = themeMode;
+  }, [themeMode]);
 
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
@@ -328,12 +333,13 @@ export default function Map() {
         coordinates[0] += lngLat.lng > coordinates[0] ? 360 : -360;
       }
 
+      const currentTheme = themeModeRef.current;
       const bgColor =
-        themeMode === 'dark' ? 'rgba(15, 23, 42, 0.95)' : '#ffffff';
+        currentTheme === 'dark' ? 'rgba(15, 23, 42, 0.95)' : '#ffffff';
       const nameColor = '#1976d2';
-      const typeColor = themeMode === 'dark' ? '#ffffff' : '#000000';
-      const labelColor = themeMode === 'dark' ? '#b0b0b0' : '#666';
-      const valueColor = themeMode === 'dark' ? '#e0e0e0' : '#333';
+      const typeColor = currentTheme === 'dark' ? '#ffffff' : '#000000';
+      const labelColor = currentTheme === 'dark' ? '#b0b0b0' : '#666';
+      const valueColor = currentTheme === 'dark' ? '#e0e0e0' : '#333';
 
       const popupHTML = `
         <div style="min-width: 220px; padding: 12px; background-color: ${bgColor}; border-radius: 6px; backdrop-filter: blur(8px);">
@@ -401,10 +407,11 @@ export default function Map() {
         hoverPopup.current.remove();
       }
 
+      const currentTheme = themeModeRef.current;
       const bgColor =
-        themeMode === 'dark' ? 'rgba(15, 23, 42, 0.95)' : '#ffffff';
+        currentTheme === 'dark' ? 'rgba(15, 23, 42, 0.95)' : '#ffffff';
       const nameColor = '#1976d2';
-      const typeColor = themeMode === 'dark' ? '#ffffff' : '#000000';
+      const typeColor = currentTheme === 'dark' ? '#ffffff' : '#000000';
 
       const hoverHTML = `
         <div style="padding: 10px; font-size: 12px; background-color: ${bgColor}; border-radius: 6px; backdrop-filter: blur(8px); min-width: 140px;">
