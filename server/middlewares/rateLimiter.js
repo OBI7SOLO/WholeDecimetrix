@@ -1,3 +1,4 @@
+// Rate limiter policies for login and API protection.
 const rateLimit = require('express-rate-limit');
 
 const loginRateLimiter = rateLimit({

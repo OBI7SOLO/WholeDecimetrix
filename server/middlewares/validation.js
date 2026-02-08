@@ -1,3 +1,4 @@
+// Zod schemas for request validation.
 const { z } = require('zod');
 
 const assetTypeEnum = ['Pozo', 'Motor', 'Transformador'];
