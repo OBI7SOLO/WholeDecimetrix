@@ -1,3 +1,4 @@
+// Users table for admin management and role updates.
 import { useEffect, useMemo, useState } from 'react';
 import useSocket from '../hooks/useSocket';
 import {

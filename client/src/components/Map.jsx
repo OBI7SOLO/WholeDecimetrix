@@ -1,3 +1,4 @@
+// Mapbox view with assets, clustering, and interactions.
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import mapboxgl from 'mapbox-gl';
@@ -542,7 +543,6 @@ export default function Map() {
 
     const attemptUpdateLayer = () => {
       if (!map.current || !map.current.isStyleLoaded()) {
-        console.log('attemptUpdateLayer: Style not loaded yet');
         return;
       }
       performUpdateLayer();
@@ -550,12 +550,6 @@ export default function Map() {
 
     const performUpdateLayer = () => {
       if (!map.current) return;
-
-      console.log(
-        'performUpdateLayer: Updating with',
-        validAssets.length,
-        'assets',
-      );
 
       try {
         addOrUpdateSource();
@@ -581,24 +575,8 @@ export default function Map() {
       }
     };
 
-    console.log('Assets effect running:', {
-      mapLoaded,
-      hasAssets: !!assets,
-      assetCount: assets?.length,
-      validAssetCount: validAssets.length,
-      styleLoaded: map.current?.isStyleLoaded(),
-      styleVersion,
-      lastStyleVersion: lastStyleVersionRef.current,
-    });
-
     // Check if style version changed (indicates a style change event)
     if (lastStyleVersionRef.current !== styleVersion) {
-      console.log(
-        'Style version changed from',
-        lastStyleVersionRef.current,
-        'to',
-        styleVersion,
-      );
       lastStyleVersionRef.current = styleVersion;
       assetLayersRegistered.current = false; // Reset event registration on style change
     }
@@ -615,7 +593,6 @@ export default function Map() {
 
     // Create new listener
     styleLoadHandlerRef.current = () => {
-      console.log('style.load event fired, calling performUpdateLayer');
       performUpdateLayer();
     };
 
@@ -625,10 +602,7 @@ export default function Map() {
 
     // Try to update immediately if style is loaded
     if (map.current?.isStyleLoaded()) {
-      console.log('Style is loaded, updating immediately');
       attemptUpdateLayer();
-    } else {
-      console.log('Waiting for style.load event');
     }
 
     return () => {

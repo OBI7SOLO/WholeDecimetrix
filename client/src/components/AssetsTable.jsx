@@ -1,3 +1,4 @@
+// Assets table with filters, pagination, and CRUD actions.
 import { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import useSocket from '../hooks/useSocket';

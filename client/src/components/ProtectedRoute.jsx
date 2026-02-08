@@ -1,3 +1,4 @@
+// Route guard for authenticated and role-protected views.
 import { useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';

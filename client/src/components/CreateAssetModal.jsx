@@ -1,3 +1,4 @@
+// Modal for creating assets with validation and submit flow.
 import { useState, useEffect } from 'react';
 import {
   Dialog,
