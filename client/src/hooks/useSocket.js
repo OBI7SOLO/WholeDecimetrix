@@ -1,3 +1,4 @@
+// Socket hook that manages connection and auth token.
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { API_URL } from '../config';
