@@ -1,3 +1,4 @@
+// API client with token handling and refresh flow.
 import { API_URL } from '../config';
 
 let accessToken = null;
