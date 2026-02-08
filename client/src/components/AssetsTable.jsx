@@ -492,7 +492,13 @@ export default function AssetsTable() {
         page={page}
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
-        labelRowsPerPage='Filas por p\u00e1gina'
+        labelRowsPerPage='Filas por página'
+        sx={{
+          '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows':
+            {
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            },
+        }}
       />
 
       <Dialog

@@ -127,6 +127,10 @@ export default function Map() {
   const [styleVersion, setStyleVersion] = useState(0);
   const hoverPopup = useRef(null);
   const assetLayersRegistered = useRef(false);
+  const fallbackTimerRef = useRef(null);
+  const fallbackAppliedRef = useRef(false);
+  const lastStyleVersionRef = useRef(-1);
+  const styleLoadHandlerRef = useRef(null);
   const [toast, setToast] = useState({
     open: false,
     message: '',
@@ -194,6 +198,11 @@ export default function Map() {
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
+    // Reset state for component mount/remount
+    lastStyleVersionRef.current = -1;
+    assetLayersRegistered.current = false;
+    styleLoadHandlerRef.current = null;
+
     initializePopupStyles();
 
     if (!mapboxgl.supported()) {
@@ -211,26 +220,29 @@ export default function Map() {
 
       map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-      let fallbackTimer;
-      let fallbackApplied = false;
-
       const applyFallback = () => {
-        if (map.current && !fallbackApplied) {
-          fallbackApplied = true;
+        if (map.current && !fallbackAppliedRef.current) {
+          fallbackAppliedRef.current = true;
           map.current.setStyle(OSM_FALLBACK_STYLE);
         }
       };
 
-      fallbackTimer = setTimeout(() => {
+      fallbackTimerRef.current = setTimeout(() => {
         if (map.current && !map.current.isStyleLoaded()) {
           applyFallback();
         }
-      }, 4000);
+      }, 5000);
 
       map.current.on('load', () => {
         setMapLoaded(true);
         map.current?.resize();
       });
+
+      // Check if already loaded (can happen on remount)
+      if (map.current.loaded()) {
+        setMapLoaded(true);
+        map.current.resize();
+      }
 
       clickListenerRef.current = (e) => {
         if (selectModeRef.current) handleMapClick(e);
@@ -238,7 +250,10 @@ export default function Map() {
       map.current.on('click', clickListenerRef.current);
 
       map.current.on('style.load', () => {
-        if (fallbackTimer) clearTimeout(fallbackTimer);
+        if (fallbackTimerRef.current) {
+          clearTimeout(fallbackTimerRef.current);
+          fallbackTimerRef.current = null;
+        }
       });
 
       map.current.on('error', (e) => {
@@ -253,6 +268,10 @@ export default function Map() {
     }
 
     return () => {
+      if (fallbackTimerRef.current) {
+        clearTimeout(fallbackTimerRef.current);
+        fallbackTimerRef.current = null;
+      }
       if (map.current) {
         if (clickListenerRef.current)
           map.current.off('click', clickListenerRef.current);
@@ -311,7 +330,7 @@ export default function Map() {
       const bgColor =
         themeMode === 'dark' ? 'rgba(15, 23, 42, 0.95)' : '#ffffff';
       const nameColor = '#1976d2';
-      const typeColor = '#ffffff';
+      const typeColor = themeMode === 'dark' ? '#ffffff' : '#000000';
       const labelColor = themeMode === 'dark' ? '#b0b0b0' : '#666';
       const valueColor = themeMode === 'dark' ? '#e0e0e0' : '#333';
 
@@ -360,6 +379,13 @@ export default function Map() {
 
     const handlePointClick = (event) => {
       if (!event.features || !event.features[0]) return;
+
+      // Remove hover popup when clicking
+      if (hoverPopup.current) {
+        hoverPopup.current.remove();
+        hoverPopup.current = null;
+      }
+
       buildPopup(event.features[0], event.lngLat);
     };
 
@@ -377,7 +403,7 @@ export default function Map() {
       const bgColor =
         themeMode === 'dark' ? 'rgba(15, 23, 42, 0.95)' : '#ffffff';
       const nameColor = '#1976d2';
-      const typeColor = '#ffffff';
+      const typeColor = themeMode === 'dark' ? '#ffffff' : '#000000';
 
       const hoverHTML = `
         <div style="padding: 10px; font-size: 12px; background-color: ${bgColor}; border-radius: 6px; backdrop-filter: blur(8px); min-width: 140px;">
@@ -514,8 +540,23 @@ export default function Map() {
       map.current.off('mouseleave', pointLayerId, handleMouseLeave);
     };
 
-    const updateLayer = () => {
+    const attemptUpdateLayer = () => {
+      if (!map.current || !map.current.isStyleLoaded()) {
+        console.log('attemptUpdateLayer: Style not loaded yet');
+        return;
+      }
+      performUpdateLayer();
+    };
+
+    const performUpdateLayer = () => {
       if (!map.current) return;
+
+      console.log(
+        'performUpdateLayer: Updating with',
+        validAssets.length,
+        'assets',
+      );
+
       try {
         addOrUpdateSource();
         addLayers();
@@ -540,20 +581,67 @@ export default function Map() {
       }
     };
 
-    if (map.current.isStyleLoaded()) {
-      updateLayer();
-    } else {
-      const onStyleLoad = () => {
-        assetLayersRegistered.current = false; // Reset when style changes
-        updateLayer();
-      };
-      map.current.once('style.load', onStyleLoad);
-      return () => {
-        if (map.current) {
-          map.current.off('style.load', onStyleLoad);
-        }
-      };
+    console.log('Assets effect running:', {
+      mapLoaded,
+      hasAssets: !!assets,
+      assetCount: assets?.length,
+      validAssetCount: validAssets.length,
+      styleLoaded: map.current?.isStyleLoaded(),
+      styleVersion,
+      lastStyleVersion: lastStyleVersionRef.current,
+    });
+
+    // Check if style version changed (indicates a style change event)
+    if (lastStyleVersionRef.current !== styleVersion) {
+      console.log(
+        'Style version changed from',
+        lastStyleVersionRef.current,
+        'to',
+        styleVersion,
+      );
+      lastStyleVersionRef.current = styleVersion;
+      assetLayersRegistered.current = false; // Reset event registration on style change
     }
+
+    // Set up style.load listener (remove old one first)
+    if (styleLoadHandlerRef.current && map.current) {
+      try {
+        map.current.off('style.load', styleLoadHandlerRef.current);
+      } catch (e) {
+        // ignore
+      }
+      styleLoadHandlerRef.current = null;
+    }
+
+    // Create new listener
+    styleLoadHandlerRef.current = () => {
+      console.log('style.load event fired, calling performUpdateLayer');
+      performUpdateLayer();
+    };
+    
+    if (map.current) {
+      map.current.on('style.load', styleLoadHandlerRef.current);
+    }
+
+    // Try to update immediately if style is loaded
+    if (map.current?.isStyleLoaded()) {
+      console.log('Style is loaded, updating immediately');
+      attemptUpdateLayer();
+    } else {
+      console.log('Waiting for style.load event');
+    }
+
+    return () => {
+      // Clean up the listener on unmount
+      if (map.current && styleLoadHandlerRef.current) {
+        try {
+          map.current.off('style.load', styleLoadHandlerRef.current);
+        } catch (e) {
+          console.warn('Error removing style.load listener:', e);
+        }
+        styleLoadHandlerRef.current = null;
+      }
+    };
   }, [assets, mapLoaded, styleVersion]);
 
   const removeSelectedPing = () => {
@@ -576,6 +664,13 @@ export default function Map() {
 
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
+
+    // Clear any pending fallback timer when changing style manually
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+
     const newStyle = getMapStyle(currentStyle, themeMode);
     const currentMapStyleUrl = map.current.getStyle().url;
     if (currentMapStyleUrl !== newStyle) {
@@ -675,16 +770,16 @@ export default function Map() {
         elevation={3}
         sx={{
           position: 'absolute',
-          top: 20,
-          left: 20,
+          top: '2%',
+          left: '2%',
           zIndex: 1,
-          borderRadius: 2,
+          borderRadius: 1.5,
           overflow: 'hidden',
           backgroundColor:
             theme.palette.mode === 'light'
-              ? 'rgba(255, 255, 255, 0.9)'
-              : 'rgba(30, 41, 59, 0.9)',
-          backdropFilter: 'blur(8px)',
+              ? 'rgba(255, 255, 255, 0.85)'
+              : 'rgba(30, 41, 59, 0.85)',
+          backdropFilter: 'blur(12px)',
         }}
       >
         <ToggleButtonGroup
@@ -738,10 +833,15 @@ export default function Map() {
         elevation={3}
         sx={{
           position: 'absolute',
-          top: 80,
-          left: 20,
+          top: '12%',
+          left: '2%',
           zIndex: 1,
           borderRadius: '50%',
+          backgroundColor:
+            theme.palette.mode === 'light'
+              ? 'rgba(255, 255, 255, 0.85)'
+              : 'rgba(30, 41, 59, 0.85)',
+          backdropFilter: 'blur(12px)',
         }}
       >
         <Button
@@ -754,7 +854,7 @@ export default function Map() {
             height: '40px',
             borderRadius: '50%',
             p: 0,
-            color: '#475569',
+            color: theme.palette.mode === 'light' ? '#475569' : '#cbd5e1',
           }}
           aria-label='Centrar mapa'
           title='Centrar mapa'
@@ -783,12 +883,13 @@ export default function Map() {
         color='primary'
         sx={{
           position: 'absolute',
-          bottom: 20,
-          right: 20,
+          bottom: '3%',
+          right: '3%',
           borderRadius: '50%',
           minWidth: 60,
           height: 60,
           fontSize: 32,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
         }}
         onClick={handleAddAsset}
       >
