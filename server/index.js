@@ -77,18 +77,6 @@ mongoose
   .then(() => console.log('MongoDB connected'))
   .catch((err) => console.error('MongoDB connection error:', err.message));
 
-// Routes
-app.use('/auth', authRoutes);
-
-// Serve static assets in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/dist')));
-
-  app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
-  });
-}
-
 const server = app.listen(process.env.PORT || 5001, () => {
   console.log(`Server running on port ${process.env.PORT || 5001}`);
 });
@@ -126,8 +114,19 @@ io.use((socket, next) => {
 const assetController = assetControllerFactory(io);
 const userController = userControllerFactory(io);
 
+// API Routes - MUST be before static files catch-all
+app.use('/auth', authRoutes);
 app.use('/assets', assetRoutes(assetController));
 app.use('/users', userRoutes(userController));
+
+// Serve static assets in production - AFTER all API routes
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
+  });
+}
 
 io.on('connection', (socket) => {
   // Join personal room
