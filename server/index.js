@@ -20,8 +20,40 @@ dotenv.config();
 
 const app = express();
 
+// Trust proxy for Render deployment
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // Security middleware
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "blob:"],
+        workerSrc: ["'self'", "blob:"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "blob:",
+          "https://*.tile.openstreetmap.org",
+          "https://api.mapbox.com",
+        ],
+        connectSrc: [
+          "'self'",
+          "https://api.mapbox.com",
+          "https://events.mapbox.com",
+          "https://*.tile.openstreetmap.org",
+          "wss://wholedecimetrix.onrender.com",
+          "https://wholedecimetrix.onrender.com",
+        ],
+        fontSrc: ["'self'", "data:"],
+      },
+    },
+  }),
+);
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN
