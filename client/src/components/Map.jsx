@@ -250,9 +250,9 @@ export default function Map() {
         if (accuracy > 1000) {
           setToast({
             open: true,
-            message: `Precisión baja (~${Math.round(
+            message: `Ubicación aproximada (~${Math.round(
               accuracy,
-            )}m). Para mejorar, activa WiFi/GPS en tu dispositivo.`,
+            )}m). Al usar Ethernet (cable) sin GPS, se usa la ubicación de su proveedor de internet.`,
             severity: 'warning',
           });
         }
