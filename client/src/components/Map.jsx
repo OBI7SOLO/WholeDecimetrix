@@ -19,6 +19,7 @@ import MapIcon from '@mui/icons-material/Map';
 import SatelliteAltIcon from '@mui/icons-material/SatelliteAlt';
 import TerrainIcon from '@mui/icons-material/Terrain';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
+import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import CreateAssetModal from './CreateAssetModal';
 import useSocket from '../hooks/useSocket';
 import { API_URL } from '../config';
@@ -106,6 +107,9 @@ const initializePopupStyles = () => {
     .mapboxgl-popup-tip {
       border-top-color: transparent !important;
       border-bottom-color: transparent !important;
+    }
+    .mapboxgl-ctrl-geolocate {
+      display: none !important;
     }
   `;
   document.head.appendChild(style);
@@ -201,6 +205,8 @@ export default function Map() {
     }, 0);
   }, [themeMode, mapLoaded]);
 
+  const geolocateControlRef = useRef(null);
+
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
@@ -225,6 +231,55 @@ export default function Map() {
       });
 
       map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      // Initialize GeolocateControl but don't add to UI if we use custom button
+      // Or add it hidden just to leverage its internal logic
+      const geolocateControl = new mapboxgl.GeolocateControl({
+        positionOptions: {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
+        },
+        trackUserLocation: true,
+        showUserHeading: true,
+      });
+
+      geolocateControl.on('geolocate', (position) => {
+        const { accuracy } = position.coords;
+        // If accuracy > 1km, it's likely IP-based or poor signal
+        if (accuracy > 1000) {
+          setToast({
+            open: true,
+            message: `Precisión baja (~${Math.round(
+              accuracy,
+            )}m). Para mejorar, activa WiFi/GPS en tu dispositivo.`,
+            severity: 'warning',
+          });
+        }
+      });
+
+      geolocateControl.on('error', (error) => {
+        console.warn('Geolocate error:', error);
+        let msg = 'Error obteniendo ubicación.';
+        if (error.code === 1) msg = 'Permiso de ubicación denegado.';
+        if (error.code === 2) msg = 'Ubicación no disponible.';
+        if (error.code === 3) msg = 'Tiempo de espera agotado.';
+        setToast({
+          open: true,
+          message: msg,
+          severity: 'error',
+        });
+      });
+
+      map.current.addControl(geolocateControl);
+      geolocateControlRef.current = geolocateControl;
+
+      // Hide the default button via DOM manipulation after it's added
+      // We do this inside the 'load' or simply relying on CSS might be cleaner,
+      // but let's see if we can just trigger it.
+      // Mapbox adds it to the control container.
+      // If we don't want the default button, we can't easily use GeolocateControl without adding it.
+      // But we can hide the .mapboxgl-ctrl-geolocate class.
 
       const applyFallback = () => {
         if (map.current && !fallbackAppliedRef.current) {
@@ -731,6 +786,18 @@ export default function Map() {
     setSelectMode(false);
   };
 
+  const handleGeolocate = () => {
+    if (geolocateControlRef.current) {
+      geolocateControlRef.current.trigger();
+    } else {
+      setToast({
+        open: true,
+        message: 'Control de geolocalización no inicializado',
+        severity: 'error',
+      });
+    }
+  };
+
   return (
     <Box
       sx={{ position: 'relative', width: '100%', height: '100%' }}
@@ -810,39 +877,75 @@ export default function Map() {
         </ToggleButtonGroup>
       </Paper>
 
-      <Paper
-        elevation={3}
+      <Box
         sx={{
           position: 'absolute',
           top: '12%',
           left: '2%',
           zIndex: 1,
-          borderRadius: '50%',
-          backgroundColor:
-            theme.palette.mode === 'light'
-              ? 'rgba(255, 255, 255, 0.85)'
-              : 'rgba(30, 41, 59, 0.85)',
-          backdropFilter: 'blur(12px)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
         }}
       >
-        <Button
-          onClick={() =>
-            map.current?.flyTo({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM })
-          }
+        <Paper
+          elevation={3}
           sx={{
-            minWidth: '40px',
-            width: '40px',
-            height: '40px',
             borderRadius: '50%',
-            p: 0,
-            color: theme.palette.mode === 'light' ? '#475569' : '#cbd5e1',
+            backgroundColor:
+              theme.palette.mode === 'light'
+                ? 'rgba(255, 255, 255, 0.85)'
+                : 'rgba(30, 41, 59, 0.85)',
+            backdropFilter: 'blur(12px)',
           }}
-          aria-label='Centrar mapa'
-          title='Centrar mapa'
         >
-          <MyLocationIcon />
-        </Button>
-      </Paper>
+          <Button
+            onClick={handleGeolocate}
+            sx={{
+              minWidth: '40px',
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              p: 0,
+              color: theme.palette.mode === 'light' ? '#475569' : '#cbd5e1',
+            }}
+            aria-label='Mi ubicación'
+            title='Mi ubicación'
+          >
+            <GpsFixedIcon />
+          </Button>
+        </Paper>
+
+        <Paper
+          elevation={3}
+          sx={{
+            borderRadius: '50%',
+            backgroundColor:
+              theme.palette.mode === 'light'
+                ? 'rgba(255, 255, 255, 0.85)'
+                : 'rgba(30, 41, 59, 0.85)',
+            backdropFilter: 'blur(12px)',
+          }}
+        >
+          <Button
+            onClick={() =>
+              map.current?.flyTo({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM })
+            }
+            sx={{
+              minWidth: '40px',
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              p: 0,
+              color: theme.palette.mode === 'light' ? '#475569' : '#cbd5e1',
+            }}
+            aria-label='Centrar mapa'
+            title='Centrar mapa'
+          >
+            <MyLocationIcon />
+          </Button>
+        </Paper>
+      </Box>
 
       {isLoading && (
         <Box
