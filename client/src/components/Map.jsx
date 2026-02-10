@@ -907,7 +907,7 @@ export default function Map() {
               height: '40px',
               borderRadius: '50%',
               p: 0,
-              color: theme.palette.mode === 'light' ? '#475569' : '#cbd5e1',
+              color: theme.palette.primary.main,
             }}
             aria-label='Mi ubicación'
             title='Mi ubicación'
@@ -919,7 +919,7 @@ export default function Map() {
         <Paper
           elevation={3}
           sx={{
-            borderRadius: '50%',
+            borderRadius: '12px',
             backgroundColor:
               theme.palette.mode === 'light'
                 ? 'rgba(255, 255, 255, 0.85)'
@@ -935,9 +935,9 @@ export default function Map() {
               minWidth: '40px',
               width: '40px',
               height: '40px',
-              borderRadius: '50%',
+              borderRadius: '12px',
               p: 0,
-              color: theme.palette.mode === 'light' ? '#475569' : '#cbd5e1',
+              color: theme.palette.text.primary,
             }}
             aria-label='Centrar mapa'
             title='Centrar mapa'
